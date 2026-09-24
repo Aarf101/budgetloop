@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "budgetloop"
+version = "0.1.0"
+description = "A minimal, dependency-free agent loop that treats context as a budget instead of a bucket"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = []
+
+[project.scripts]
+budgetloop = "budgetloop.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# Lets `pytest` work from a clean checkout without installing the package.
+# The stdlib-only path is `PYTHONPATH=src python -m unittest discover -s tests`.
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"

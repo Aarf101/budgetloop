@@ -1,0 +1,196 @@
+#!/usr/bin/env python3
+"""Enforce this repository's house style rules.
+
+The rules are executable instead of written in a wiki, because `make check` runs
+this file: an agent that ignores AGENTS.md finds out immediately, and a reviewer
+gets to argue about substance instead of whitespace.
+
+Rules
+  1. no tabs, no trailing whitespace
+  2. no line longer than MAX_LINE_LENGTH (100) characters
+  3. the file ends with exactly one newline
+  4. library code does not print: ``print(`` is allowed only in the CLI and scripts/
+  5. every module and every public top-level class/function has a docstring
+  6. no bare ``except:`` (it swallows KeyboardInterrupt too)
+  7. no TODO/FIXME/XXX markers and no NotImplementedError placeholders
+
+Usage: python scripts/check_style.py [PATH ...]     (default: the repo root)
+Exit codes: 0 clean, 1 violations found, 2 bad usage.
+"""
+
+from __future__ import annotations
+
+import ast
+import re
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Iterable, Sequence
+
+MAX_LINE_LENGTH = 100
+SKIP_DIRS = frozenset(
+    {
+        ".git",
+        "__pycache__",
+        ".venv",
+        "venv",
+        "node_modules",
+        "build",
+        "dist",
+        ".budgetloop",
+        ".pytest_cache",
+    }
+)
+#: Files allowed to write to stdout, beyond anything under scripts/.
+PRINT_ALLOWED = frozenset({"src/budgetloop/cli.py"})
+PLACEHOLDER_TOKENS = ("TODO", "FIXME", "XXX", "NotImplementedError")
+#: This file names the tokens it forbids, so it is exempt from rule 7 for itself.
+SELF_EXEMPT = frozenset({"scripts/check_style.py"})
+_BARE_EXCEPT = re.compile(r"^\s*except\s*:")
+
+
+@dataclass(frozen=True)
+class Violation:
+    """One rule failure, with just enough location to fix it."""
+
+    path: str
+    line: int
+    rule: str
+    message: str
+
+    def __str__(self) -> str:
+        location = f"{self.path}:{self.line}" if self.line else self.path
+        return f"{location}: [{self.rule}] {self.message}"
+
+
+def python_files(roots: Iterable[Path]) -> list[Path]:
+    """Every .py file under ``roots``, skipping caches and virtualenvs."""
+    found: list[Path] = []
+    for root in roots:
+        if root.is_file():
+            if root.suffix == ".py":
+                found.append(root)
+            continue
+        for path in sorted(root.rglob("*.py")):
+            if SKIP_DIRS.intersection(path.parts):
+                continue
+            found.append(path)
+    return found
+
+
+def _normalise(path: Path) -> str:
+    """Repo-relative POSIX path when possible, so messages are stable."""
+    try:
+        return path.resolve().relative_to(Path.cwd().resolve()).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def _print_allowed(posix_path: str) -> bool:
+    if posix_path in PRINT_ALLOWED:
+        return True
+    return posix_path.startswith("scripts/") or "/scripts/" in posix_path
+
+
+def check_file(path: Path) -> list[Violation]:
+    """Apply every rule to one file and return the violations found."""
+    posix = _normalise(path)
+    try:
+        source = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        return [Violation(posix, 0, "readable", str(exc))]
+
+    violations: list[Violation] = []
+    for number, line in enumerate(source.splitlines(), start=1):
+        if len(line) > MAX_LINE_LENGTH:
+            violations.append(
+                Violation(
+                    posix,
+                    number,
+                    "line-length",
+                    f"{len(line)} > {MAX_LINE_LENGTH} characters",
+                )
+            )
+        if line != line.rstrip():
+            violations.append(Violation(posix, number, "trailing-whitespace", "remove it"))
+        if "\t" in line:
+            violations.append(Violation(posix, number, "tabs", "indent with spaces"))
+        if _BARE_EXCEPT.match(line):
+            violations.append(
+                Violation(posix, number, "bare-except", "name the exception you expect")
+            )
+        if posix not in SELF_EXEMPT:
+            for token in PLACEHOLDER_TOKENS:
+                if token in line:
+                    violations.append(
+                        Violation(posix, number, "placeholder", f"{token} left in the code")
+                    )
+
+    last_line = len(source.splitlines())
+    if not source.endswith("\n"):
+        violations.append(
+            Violation(posix, last_line, "final-newline", "file must end with a newline")
+        )
+    elif source.endswith("\n\n"):
+        violations.append(
+            Violation(posix, last_line, "final-newline", "exactly one trailing newline")
+        )
+
+    try:
+        tree = ast.parse(source, filename=posix)
+    except SyntaxError as exc:
+        violations.append(Violation(posix, exc.lineno or 0, "parses", str(exc.msg)))
+        return violations
+
+    if ast.get_docstring(tree) is None:
+        violations.append(Violation(posix, 1, "module-docstring", "add a module docstring"))
+    if not _print_allowed(posix):
+        # Scanned through the AST, not the raw text: a string that merely
+        # contains "print(" is not a call to print.
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "print"
+            ):
+                violations.append(
+                    Violation(posix, node.lineno, "no-print", "library code must not print")
+                )
+    for node in tree.body:
+        if not isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        if node.name.startswith("_"):
+            continue
+        if ast.get_docstring(node) is None:
+            violations.append(
+                Violation(posix, node.lineno, "public-docstring", f"{node.name} has no docstring")
+            )
+    return violations
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Check every path given (default: the repo root) and print the violations."""
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    roots = [Path(argument) for argument in arguments] or [Path(".")]
+    missing = [root for root in roots if not root.exists()]
+    if missing:
+        for root in missing:
+            print(f"no such path: {root}", file=sys.stderr)
+        return 2
+
+    paths = python_files(roots)
+    violations: list[Violation] = []
+    for path in paths:
+        violations.extend(check_file(path))
+
+    for violation in violations:
+        print(violation)
+    if violations:
+        print(f"\n{len(violations)} style violation(s) across {len(paths)} file(s)")
+        return 1
+    print(f"style: clean ({len(paths)} file(s) checked)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

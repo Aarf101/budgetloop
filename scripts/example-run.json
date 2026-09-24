@@ -1,0 +1,20 @@
+[
+  {
+    "note": "Perceive: look before touching anything.",
+    "tool": "list_files",
+    "arguments": { "pattern": "**/*.py" }
+  },
+  {
+    "note": "Plan: read the one file that answers the question.",
+    "tool": "read_file",
+    "arguments": { "path": "README.md" }
+  },
+  {
+    "note": "Act: ask for a write, which the harness refuses without an approval policy.",
+    "tool": "write_file",
+    "arguments": { "path": "example-scratch.txt", "content": "written by a scripted run\n" }
+  },
+  {
+    "final": "I listed the Python modules, read the README, and asked to write example-scratch.txt. The write was refused because no approval policy is configured for this run, so the workspace is unchanged. The refusal arrived as an ordinary observation, which is why the loop kept going instead of failing."
+  }
+]

@@ -125,21 +125,30 @@ def build_provider(args: argparse.Namespace) -> Provider:
 
 
 def make_approval_policy(args: argparse.Namespace) -> ApproveFn:
-    """Fail closed: approve only with ``--yes`` or an interactive ``y`` from a human."""
+    """Fail closed: approve only with ``--yes`` or an interactive ``y`` from a human.
+
+    All narration goes to stderr, so ``--json`` output on stdout stays parseable.
+    """
 
     def policy(tool: Tool, arguments: dict[str, Any]) -> bool:
         target = arguments.get("path", "(no path argument)")
         size = len(str(arguments.get("content", "")))
-        print(f"[approval] {tool.name} wants to write {target} ({size} chars)")
+        print(
+            f"[approval] {tool.name} wants to write {target} ({size} chars)",
+            file=sys.stderr,
+        )
         if args.yes:
-            print("[approval] allowed by --yes (operator pre-authorised this run)")
+            print("[approval] allowed by --yes (operator pre-authorised this run)", file=sys.stderr)
             return True
         if not sys.stdin.isatty():
-            print("[approval] DENIED: no interactive terminal and --yes was not passed")
+            print(
+                "[approval] DENIED: no interactive terminal and --yes was not passed",
+                file=sys.stderr,
+            )
             return False
         answer = input("[approval] apply this change? [y/N] ").strip().lower()
         allowed = answer in {"y", "yes"}
-        print(f"[approval] {'allowed' if allowed else 'denied'} by operator")
+        print(f"[approval] {'allowed' if allowed else 'denied'} by operator", file=sys.stderr)
         return allowed
 
     return policy

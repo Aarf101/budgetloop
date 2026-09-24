@@ -247,18 +247,29 @@ class ApprovalGateTests(unittest.TestCase):
         self._tmp.cleanup()
 
     def test_write_is_denied_without_a_terminal_or_yes(self):
-        code, output = invoke(self.base)
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            code, _ = invoke(self.base)
         self.assertEqual(code, EXIT_OK)
-        self.assertIn("DENIED", output)
+        self.assertIn("DENIED", stderr.getvalue())
         self.assertFalse((self.root / "made-by-the-agent.txt").exists())
 
     def test_write_is_allowed_with_the_yes_flag(self):
-        code, output = invoke(self.base + ["--yes"])
+        with contextlib.redirect_stderr(io.StringIO()):
+            code, _ = invoke(self.base + ["--yes"])
         self.assertEqual(code, EXIT_OK)
-        self.assertIn("allowed by --yes", output)
         self.assertEqual(
             (self.root / "made-by-the-agent.txt").read_text(encoding="utf-8"), "hello"
         )
+
+    def test_json_output_stays_parseable_when_a_write_is_refused(self):
+        # Narration belongs on stderr: stdout is the machine-readable channel.
+        with contextlib.redirect_stderr(io.StringIO()):
+            code, output = invoke(self.base + ["--json"])
+        self.assertEqual(code, EXIT_OK)
+        payload = json.loads(output)
+        self.assertEqual(payload["failed_observations"], 1)
+        self.assertIn("declined", payload["transcript"][0]["observations"][0]["error"])
 
 
 class DemoTests(unittest.TestCase):

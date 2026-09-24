@@ -9,30 +9,19 @@ scans, and it should not flag itself.
 from __future__ import annotations
 
 import contextlib
-import importlib.util
 import io
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-PLACEHOLDER_WORD = "TO" + "DO"
-PLACEHOLDER_NAME = "NotImple" + "mentedError"
+from tests._loader import REPO_ROOT, load_script
 
+#: Marker tokens are assembled from fragments, and the identifiers avoid the tokens
+#: themselves, because this file is inside the tree the checker scans.
+MARKER_WORD = "TO" + "DO"
+MARKER_NAME = "NotImple" + "mentedError"
 
-def load_checker():
-    """Import scripts/check_style.py by path, without depending on sys.path."""
-    path = REPO_ROOT / "scripts" / "check_style.py"
-    spec = importlib.util.spec_from_file_location("check_style_under_test", path)
-    module = importlib.util.module_from_spec(spec)
-    # Dataclasses resolve annotations through sys.modules, so register first.
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-STYLE = load_checker()
+STYLE = load_script("scripts/check_style.py")
 
 
 class CheckerRuleTests(unittest.TestCase):
@@ -73,10 +62,10 @@ class CheckerRuleTests(unittest.TestCase):
         self.assertIn("bare-except", self.check(source))
 
     def test_placeholder_markers_are_flagged(self):
-        comment = f'"""Doc."""\n\n# {PLACEHOLDER_WORD}: later\nvalue = 1\n'
+        comment = f'"""Doc."""\n\n# {MARKER_WORD}: later\nvalue = 1\n'
         self.assertIn("placeholder", self.check(comment))
         raise_source = (
-            f'"""Doc."""\n\n\ndef go():\n    """Doc."""\n    raise {PLACEHOLDER_NAME}\n'
+            f'"""Doc."""\n\n\ndef go():\n    """Doc."""\n    raise {MARKER_NAME}\n'
         )
         self.assertIn("placeholder", self.check(raise_source))
 

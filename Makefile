@@ -6,7 +6,7 @@
 PYTHON ?= python3
 export PYTHONPATH := src
 
-.PHONY: help test demo style skill-lint check run traces clean
+.PHONY: help test demo style skill-lint check run traces score clean
 
 help:
 	@echo "make test       run the unit test suite (stdlib unittest)"
@@ -15,6 +15,7 @@ help:
 	@echo "make style      enforce the house style rules"
 	@echo "make skill-lint validate every skills/*/SKILL.md against the Agent Skills spec"
 	@echo "make run TASK='...'  drive the loop once, offline, from scripts/example-run.json"
+	@echo "make score      score the Lab 2 scorecard (docs/experiment-scorecard.csv)"
 	@echo "make traces     list trace files written by recent runs"
 	@echo "make clean      remove caches and runtime artifacts"
 
@@ -35,6 +36,9 @@ check: style skill-lint test
 run:
 	@test -n "$(TASK)" || (echo "usage: make run TASK='what you want done'" && exit 2)
 	$(PYTHON) -m budgetloop.cli run --task "$(TASK)" --script scripts/example-run.json
+
+score:
+	$(PYTHON) scripts/score_experiment.py docs/experiment-scorecard.csv
 
 traces:
 	@ls -1t .budgetloop/traces 2>/dev/null || echo "no traces yet"

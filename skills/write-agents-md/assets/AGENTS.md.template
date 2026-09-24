@@ -1,0 +1,60 @@
+# AGENTS.md
+
+<!--
+Fill this in top to bottom. Delete a section only if it genuinely does not apply,
+and say why in one line rather than leaving it empty. Every command here must be
+one you ran yourself, from a clean checkout, and the runtime must be observed.
+-->
+
+## What this is
+
+{{One line: what the project does, and who it is for.}} Layout:
+
+- `{{path}}/` — {{what lives here}}
+- `{{path}}/` — {{what lives here}}
+- `{{path}}/` — {{where the tests live}}
+
+## Setup
+
+```bash
+{{install command, or write "no install step: stdlib only"}}
+{{command that proves setup worked}}
+```
+
+The full check takes about {{N}} seconds.
+
+## Checks (done means these pass)
+
+```bash
+{{the one command that decides "done"}}          # e.g. make check
+{{a narrower command for one file or package}}   # e.g. python -m unittest tests.test_x
+```
+
+{{What the checks cover, and what they deliberately do not.}}
+
+## Code style
+
+- {{A rule a formatter cannot enforce, e.g. "errors are raised, never printed"}}
+- {{Another one, e.g. "line length 100; module docstrings required"}}
+- Format with `{{format command}}`; lint with `{{lint command}}`.
+
+## Guardrails
+
+- Never edit `{{generated directory}}` by hand; regenerate it with `{{generator command}}`.
+- Never commit `{{secrets file}}`. Tokens live in the `{{ENV_VARIABLE}}` environment variable.
+- {{Scope restriction, e.g. "stay inside this repo; the file tools are confined to it"}}.
+- If a check fails, fix the failure or report it. Never delete or skip a test to force green.
+
+## Commits and pull requests
+
+- Commit messages: {{convention, e.g. "imperative subject under 72 chars, body explains why"}}.
+- Before committing: `{{command}}`.
+
+## Known traps
+
+- {{The first thing that bites everyone, and its workaround.}}
+- {{The second thing.}}
+
+## Unknowns
+
+- {{Something you could not determine}} — find out with `{{command}}`.

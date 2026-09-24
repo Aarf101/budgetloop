@@ -138,11 +138,14 @@ wire format is verified even when no key is present.
 ```
 .
 ├── AGENTS.md                     # Lab 2: the README for agents (setup, tests, guardrails)
+├── CLAUDE.md                     # Claude Code entry point: imports AGENTS.md, no duplication
 ├── REFLECTION.md                 # Lab 1: the 5-question workflow rubric, answered
 ├── README.md                     # this file (for humans)
-├── Makefile                      # test / demo / check / run
+├── Makefile                      # test / demo / check / run / score
+├── .claude/skills/               # symlinks so Claude Code finds skills/* without a copy step
 ├── docs/
-│   ├── LAB2-BEFORE-AFTER.md      # Lab 2: the measurement protocol and results table
+│   ├── LAB2-BEFORE-AFTER.md      # Lab 2: the protocol, the metrics, the empty results table
+│   ├── experiment-scorecard.csv  # Lab 2: raw data, one row per attempt
 │   └── SETUP-AGENTS.md           # installing and driving Claude Code / Codex CLI
 ├── scripts/
 │   ├── check_style.py            # house style rules (a real check, not a suggestion)
@@ -151,8 +154,8 @@ wire format is verified even when no key is present.
 │   └── example-run.json          # the scripted run behind `make run`
 ├── skills/
 │   └── write-agents-md/          # Lab 2: one reusable Skill
-│       ├── SKILL.md
-│       ├── scripts/scan_repo.py
+│       ├── SKILL.md              # frontmatter + instructions (spec-conformant)
+│       ├── scripts/scan_repo.py  # observes a repo; proposes commands to verify
 │       ├── references/best-practices.md
 │       └── assets/AGENTS.md.template
 ├── src/budgetloop/
@@ -172,6 +175,37 @@ wire format is verified even when no key is present.
 3. `src/budgetloop/tools.py` — what the agent is allowed to touch, and who approves it.
 4. `tests/test_guardrails.py` — the guarantees, written as assertions.
 5. `AGENTS.md` — how to work in this repo if you are an agent.
+
+## The agent entry points (Lab 2)
+
+The same knowledge, addressed to three different readers:
+
+| Reader | File | What it gets |
+| --- | --- | --- |
+| Any coding agent | [`AGENTS.md`](AGENTS.md) | setup, the checks, style, guardrails, known traps |
+| Claude Code specifically | [`CLAUDE.md`](CLAUDE.md) | one `@AGENTS.md` import plus the two Claude-only facts |
+| A task, not a repository | [`skills/write-agents-md/`](skills/write-agents-md/SKILL.md) | how to *write* an AGENTS.md for any repo, loaded only when relevant |
+
+To replay the Lab 2 comparison without a model, in about a second:
+
+```bash
+# without project context
+PYTHONPATH=src python3 -m budgetloop.cli run --task "Summarise the README" \
+    --script scripts/example-run.json --json | python3 -c "import json,sys; print(json.load(sys.stdin)['context']['tokens'])"
+
+# with it (the brief is appended to the system prompt)
+PYTHONPATH=src python3 -m budgetloop.cli run --task "Summarise the README" \
+    --script scripts/example-run.json --brief AGENTS.md --json | python3 -c "import json,sys; print(json.load(sys.stdin)['context']['tokens'])"
+```
+
+The second number is larger and that is the lesson: context buys reliability with
+budget, and `--brief` is how you spend it deliberately. The human-facing protocol —
+two arms, three tasks, first-pass success, and a table you have to fill in yourself —
+is in [docs/LAB2-BEFORE-AFTER.md](docs/LAB2-BEFORE-AFTER.md).
+
+To drive real agents against this repository (Claude Code, Codex CLI, and where each
+one looks for `AGENTS.md` and `SKILL.md`), see
+[docs/SETUP-AGENTS.md](docs/SETUP-AGENTS.md).
 
 ## Scope and limitations (honest list)
 

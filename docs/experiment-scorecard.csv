@@ -1,0 +1,12 @@
+# Lab 2 scorecard — one row per attempt.
+# Copy this file to docs/experiment-scorecard.csv and replace the rows with your own.
+# Definition of first-pass success (do not loosen it): the task's stated check is
+# green, a human edited none of the agent's code, and at most one clarification
+# prompt was needed.
+arm,task_id,attempt,check_passed,human_edits,clarification_prompts,agent_turns,notes
+cold,TASK-A,1,,,,,
+context,TASK-A,1,,,,,
+cold,TASK-B,1,,,,,
+context,TASK-B,1,,,,,
+cold,TASK-C,1,,,,,
+context,TASK-C,1,,,,,

@@ -2,7 +2,7 @@
 
 **Prototype:** `budgetloop`, a dependency-free Python agent loop with an explicit
 context budget.
-**Evidence to run yourself:** `make demo` (offline, ~1s), `make test` (111 tests),
+**Evidence to run yourself:** `make demo` (offline, ~1s), `make test` (171 tests),
 `make run TASK='...'`, then `make traces` and `inspect`.
 
 > **Read this first.** The italicised blockquotes below mark the facts that only
@@ -51,9 +51,9 @@ deliberate choice rather than a limitation of the tooling.
 
 **Answer: not all of it, and that is the score-limiting answer.**
 I read: every file the agent created, end to end, at least once — the package is
-about 1,200 lines including docstrings. I did *not* read: the last four tests
-line by line on first pass (I read their names and their assertions), and I did
-not re-read the whole diff after the final style pass.
+about 1,900 lines including docstrings, and the test suite another 1,800. I did
+*not* read: the last four tests line by line on first pass (I read their names and
+their assertions), and I did not re-read the whole diff after the final style pass.
 
 > *Replace with your own measurement.* A concrete way to get a number: run
 > `git diff --stat <first-commit>^..HEAD` and note how many lines you genuinely
@@ -75,7 +75,7 @@ hour.**
 
 | Check | Command | What it proves |
 | --- | --- | --- |
-| Unit tests | `make test` | 111 tests: budget arithmetic, eviction policy, sandbox escapes, refusal paths, wire format, CLI exit codes |
+| Unit tests | `make test` | 171 tests by the end of Lab 2 (111 after Lab 1): budget arithmetic, eviction policy, sandbox escapes, refusal paths, wire format, CLI exit codes, the checks themselves |
 | House style | `make style` | tab/width/docstring/placeholder rules, enforced by `scripts/check_style.py` |
 | Self-check | `make check` | style + skill validation + tests, as one command the agent can run |
 
@@ -176,7 +176,7 @@ recovery is `git diff`.**
 
 ```bash
 make demo        # offline: compaction plus a refused write, with the ledger
-make test        # 111 tests, ~0.2s
+make test        # the test suite, ~0.2s
 make check       # style + skill validation + tests
 make run TASK='summarise the README promises'
 make traces

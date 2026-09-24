@@ -35,7 +35,7 @@ do it yourself: `PYTHONPATH=src python3 -m budgetloop.cli --help`.
 
 ```bash
 make check                 # the gate: style + skill validation + tests, in ~0.5s
-make test                  # 111 tests: PYTHONPATH=src python3 -m unittest discover -s tests -t .
+make test                  # 171 tests: PYTHONPATH=src python3 -m unittest discover -s tests -t .
 make style                 # python3 scripts/check_style.py .
 make skill-lint            # python3 scripts/validate_skill.py skills/*
 ```

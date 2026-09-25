@@ -146,7 +146,14 @@ def make_approval_policy(args: argparse.Namespace) -> ApproveFn:
                 file=sys.stderr,
             )
             return False
-        answer = input("[approval] apply this change? [y/N] ").strip().lower()
+        # The prompt goes to stderr: in --json mode stdout is machine-readable, and
+        # input() always writes its prompt to stdout.
+        print("[approval] apply this change? [y/N] ", file=sys.stderr, end="")
+        try:
+            answer = input().strip().lower()
+        except EOFError:
+            print("[approval] denied: stdin closed before answering", file=sys.stderr)
+            return False
         allowed = answer in {"y", "yes"}
         print(f"[approval] {'allowed' if allowed else 'denied'} by operator", file=sys.stderr)
         return allowed

@@ -29,10 +29,14 @@ from budgetloop.cli import (
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
-def invoke(argv: list[str]) -> tuple[int, str]:
-    """Run the CLI with stdout captured, the way a shell would."""
+def invoke(argv: list[str], stdin: io.StringIO | None = None) -> tuple[int, str]:
+    """Run the CLI with stdout captured and stdin controlled, the way CI would.
+
+    Stdin defaults to an empty non-tty stream, so approval-gate tests behave the
+    same in a terminal (where stdin is a tty) and in CI (where it is not).
+    """
     buffer = io.StringIO()
-    with contextlib.redirect_stdout(buffer):
+    with contextlib.redirect_stdout(buffer), mock.patch("sys.stdin", stdin or io.StringIO("")):
         code = main(argv)
     return code, buffer.getvalue()
 
@@ -270,6 +274,19 @@ class ApprovalGateTests(unittest.TestCase):
         payload = json.loads(output)
         self.assertEqual(payload["failed_observations"], 1)
         self.assertIn("declined", payload["transcript"][0]["observations"][0]["error"])
+
+    def test_closed_stdin_counts_as_a_refusal(self):
+        class ClosedStdin(io.StringIO):
+            """A terminal whose user hung up: still a tty, but out of input."""
+
+            def isatty(self) -> bool:
+                return True
+
+        with contextlib.redirect_stderr(io.StringIO()) as errors:
+            code, _ = invoke(self.base, stdin=ClosedStdin(""))
+        self.assertEqual(code, EXIT_OK)
+        self.assertIn("stdin closed", errors.getvalue())
+        self.assertFalse((self.root / "made-by-the-agent.txt").exists())
 
 
 class DemoTests(unittest.TestCase):

@@ -55,10 +55,10 @@ about 1,900 lines including docstrings, and the test suite another 1,800. I did
 *not* read: the last four tests line by line on first pass (I read their names and
 their assertions), and I did not re-read the whole diff after the final style pass.
 
-> *Replace with your own measurement.* A concrete way to get a number: run
-> `git diff --stat <first-commit>^..HEAD` and note how many lines you genuinely
-> read versus skimmed. A defensible answer names the files you skipped and why,
-> rather than claiming 100%.
+I watched a full 6-step `make demo` end to end, including the refused write and
+the 2 compactions. I read README.md and AGENTS.md fully, and skimmed
+src/budgetloop/loop.py. I did not read the test files line by line. So roughly
+30% closely, the rest skimmed or unread.
 
 What this cost me: two bugs survived to the test run precisely because I had not
 read the tests closely — one where a compaction summary accumulated instead of
@@ -108,8 +108,10 @@ result — which a real provider rejects — and the unit of eviction became who
 tool exchanges. I would not have predicted that failure mode, which is exactly the
 point: the test caught what my review would have missed.
 
-> *Replace with your own session shape:* how many turns you took, where you
-> intervened, and the one place the agent went somewhere you would not have.
+I stated the goal and the agent chose the implementation steps. I intervened to
+require writes be refused by default. The place it went somewhere I would not
+have: it first evicted single messages during compaction until a test showed
+that could orphan a tool result.
 
 ### Q4 — What happens if the AI is wrong?
 

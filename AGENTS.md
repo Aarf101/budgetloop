@@ -35,8 +35,9 @@ do it yourself: `PYTHONPATH=src python3 -m budgetloop.cli --help`.
 
 ```bash
 make check                 # the gate: style + skill validation + tests, in ~0.5s
-make test                  # 172 tests: PYTHONPATH=src python3 -m unittest discover -s tests -t .
+make test                  # 177 tests: PYTHONPATH=src python3 -m unittest discover -s tests -t .
 make style                 # python3 scripts/check_style.py .
+make src-docstrings        # python3 scripts/check_style.py src --src-docstrings-only
 make skill-lint            # python3 scripts/validate_skill.py skills/*
 ```
 
@@ -59,6 +60,9 @@ Enforced by `scripts/check_style.py`; the rest are conventions:
 
 - 4-space indent, no tabs, no trailing whitespace, one trailing newline, 100 columns.
 - Every module has a docstring; every public top-level class and function has one.
+  Every module under `src/` is additionally covered by the `src-docstring` gate
+  (`python3 scripts/check_style.py src --src-docstrings-only`, also available to
+  the agent as `run_check` name `src-docstrings`).
 - **Library code never prints.** `print` is allowed only in `src/budgetloop/cli.py`
   and under `scripts/`; the loop returns values and statuses instead of talking.
 - Raise typed errors (`ToolError`, `SandboxViolation`, `ProviderError`,

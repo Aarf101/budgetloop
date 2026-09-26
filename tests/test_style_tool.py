@@ -78,6 +78,40 @@ class CheckerRuleTests(unittest.TestCase):
     def test_missing_module_docstring_is_flagged(self):
         self.assertIn("module-docstring", self.check("value = 1\n"))
 
+    def test_missing_docstring_under_src_is_a_src_docstring_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            package = root / "src" / "demo"
+            package.mkdir(parents=True)
+            target = package / "nodoc.py"
+            target.write_text("value = 1\n", encoding="utf-8")
+            rules = [violation.rule for violation in STYLE.check_file(target)]
+            self.assertIn("module-docstring", rules)
+            self.assertIn("src-docstring", rules)
+            self.assertEqual(
+                [violation.rule for violation in STYLE.check_src_docstrings(root / "src")],
+                ["src-docstring"],
+            )
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(STYLE.main([str(root / "src"), "--src-docstrings-only"]), 1)
+
+    def test_documented_src_module_passes_the_src_docstring_gate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            package = root / "src" / "demo"
+            package.mkdir(parents=True)
+            (package / "ok.py").write_text('"""Documented."""\n', encoding="utf-8")
+            self.assertEqual(STYLE.check_src_docstrings(root / "src"), [])
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(STYLE.main([str(root / "src"), "--src-docstrings-only"]), 0)
+
+    def test_src_docstring_gate_refuses_paths_outside_src(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "other.py").write_text("value = 1\n", encoding="utf-8")
+            with contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(STYLE.main([str(root), "--src-docstrings-only"]), 2)
+
     def test_public_function_without_a_docstring_is_flagged(self):
         self.assertIn("public-docstring", self.check('"""Doc."""\n\n\ndef go():\n    return 1\n'))
 

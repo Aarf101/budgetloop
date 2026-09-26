@@ -1,18 +1,20 @@
 # Development entry points. Everything here is stdlib-only and offline.
 #
 # `make check` is the gate an agent must pass before calling a change done:
-# style, skill validation, and tests. It is the single command named in AGENTS.md.
+# style, src docstrings, skill validation, and tests. It is the single command
+# named in AGENTS.md.
 
 PYTHON ?= python3
 export PYTHONPATH := src
 
-.PHONY: help test demo style skill-lint check run traces score clean
+.PHONY: help test demo style src-docstrings skill-lint check run traces score clean
 
 help:
 	@echo "make test       run the unit test suite (stdlib unittest)"
 	@echo "make demo       offline scripted run: shows compaction and a refused write"
-	@echo "make check      style + skill validation + tests (the gate before 'done')"
+	@echo "make check      style + src-docstrings + skill validation + tests (the gate)"
 	@echo "make style      enforce the house style rules"
+	@echo "make src-docstrings  fail if any module under src/ lacks a docstring"
 	@echo "make skill-lint validate every skills/*/SKILL.md against the Agent Skills spec"
 	@echo "make run TASK='...'  drive the loop once, offline, from scripts/example-run.json"
 	@echo "make score      score the Lab 2 scorecard (docs/experiment-scorecard.csv)"
@@ -28,10 +30,13 @@ demo:
 style:
 	$(PYTHON) scripts/check_style.py
 
+src-docstrings:
+	$(PYTHON) scripts/check_style.py src --src-docstrings-only
+
 skill-lint:
 	$(PYTHON) scripts/validate_skill.py skills/*
 
-check: style skill-lint test
+check: style src-docstrings skill-lint test
 
 run:
 	@test -n "$(TASK)" || (echo "usage: make run TASK='what you want done'" && exit 2)

@@ -279,7 +279,14 @@ def make_check_tool(
 
 def default_checks() -> dict[str, list[str]]:
     """The project's canonical checks, as allow-listed argv commands."""
-    return {"tests": [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-t", "."]}
+    python = sys.executable
+    return {
+        "tests": [python, "-m", "unittest", "discover", "-s", "tests", "-t", "."],
+        # The focused TASK-A gate: fails when any module under src/ lacks a
+        # docstring. Lives in scripts/check_style.py, not a one-off script.
+        "style": [python, "scripts/check_style.py"],
+        "src-docstrings": [python, "scripts/check_style.py", "src", "--src-docstrings-only"],
+    }
 
 
 def default_registry(

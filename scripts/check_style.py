@@ -11,11 +11,19 @@ Rules
   3. the file ends with exactly one newline
   4. library code does not print: ``print(`` is allowed only in the CLI and scripts/
   5. every module and every public top-level class/function has a docstring
-  6. no bare ``except:`` (it swallows KeyboardInterrupt too)
-  7. no TODO/FIXME/XXX markers and no NotImplementedError placeholders
+  6. every module under src/ must have a docstring (src-docstring gate,
+     the focused check for TASK-A; wired into `make check` via
+     `make src-docstrings` and into the agent's `run_check` via the
+     `src-docstrings` entry in `tools.default_checks`)
+  7. no bare ``except:`` (it swallows KeyboardInterrupt too)
+  8. no TODO/FIXME/XXX markers and no NotImplementedError placeholders
 
-Usage: python scripts/check_style.py [PATH ...]     (default: the repo root)
+Usage: python scripts/check_style.py [PATH ...] [--src-docstrings-only]
 Exit codes: 0 clean, 1 violations found, 2 bad usage.
+
+With --src-docstrings-only, only the src-docstring gate runs: every module
+under src/ must have a module docstring. That is the focused check TASK-A
+asks to be wired into the existing checks.
 """
 
 from __future__ import annotations
@@ -44,7 +52,7 @@ SKIP_DIRS = frozenset(
 #: Files allowed to write to stdout, beyond anything under scripts/.
 PRINT_ALLOWED = frozenset({"src/budgetloop/cli.py"})
 PLACEHOLDER_TOKENS = ("TODO", "FIXME", "XXX", "NotImplementedError")
-#: This file names the tokens it forbids, so it is exempt from rule 7 for itself.
+#: This file names the tokens it forbids, so it is exempt from rule 8 for itself.
 SELF_EXEMPT = frozenset({"scripts/check_style.py"})
 _BARE_EXCEPT = re.compile(r"^\s*except\s*:")
 
@@ -61,6 +69,30 @@ class Violation:
     def __str__(self) -> str:
         location = f"{self.path}:{self.line}" if self.line else self.path
         return f"{location}: [{self.rule}] {self.message}"
+
+
+def _is_src_module(posix_path: str) -> bool:
+    """Whether ``posix_path`` is a module under ``src/`` (the TASK-A scope)."""
+    return posix_path == "src" or posix_path.startswith("src/") or "/src/" in posix_path
+
+
+def check_src_docstrings(root: Path | str = "src") -> list[Violation]:
+    """Fail when any module under ``src/`` is missing its module docstring.
+
+    The focused gate for TASK-A: one function the tests and the agent's
+    ``run_check`` can call without running the whole style suite. It reuses
+    :func:`check_file` and keeps only the ``src-docstring`` violations, so the
+    rule lives in ``scripts/check_style.py`` instead of a new one-off script.
+    """
+    base = Path(root)
+    if not base.exists():
+        return [Violation(str(base), 0, "src-docstring", f"no such path: {base}")]
+    violations: list[Violation] = []
+    for path in python_files([base]):
+        violations.extend(
+            violation for violation in check_file(path) if violation.rule == "src-docstring"
+        )
+    return violations
 
 
 def python_files(roots: Iterable[Path]) -> list[Path]:
@@ -144,6 +176,10 @@ def check_file(path: Path) -> list[Violation]:
 
     if ast.get_docstring(tree) is None:
         violations.append(Violation(posix, 1, "module-docstring", "add a module docstring"))
+        if _is_src_module(posix):
+            violations.append(
+                Violation(posix, 1, "src-docstring", "add a module docstring under src/")
+            )
     if not _print_allowed(posix):
         # Scanned through the AST, not the raw text: a string that merely
         # contains "print(" is not a call to print.
@@ -171,6 +207,8 @@ def check_file(path: Path) -> list[Violation]:
 def main(argv: Sequence[str] | None = None) -> int:
     """Check every path given (default: the repo root) and print the violations."""
     arguments = list(sys.argv[1:] if argv is None else argv)
+    src_only = "--src-docstrings-only" in arguments
+    arguments = [argument for argument in arguments if argument != "--src-docstrings-only"]
     roots = [Path(argument) for argument in arguments] or [Path(".")]
     missing = [root for root in roots if not root.exists()]
     if missing:
@@ -182,13 +220,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     violations: list[Violation] = []
     for path in paths:
         violations.extend(check_file(path))
+    if src_only:
+        violations = [violation for violation in violations if violation.rule == "src-docstring"]
+        # A focused run on paths outside src/ checks nothing, so say so loudly
+        # instead of reporting a misleading clean bill for src/.
+        if not any(_is_src_module(_normalise(path)) for path in paths):
+            print("no modules under src/ in the checked paths", file=sys.stderr)
+            return 2
 
     for violation in violations:
         print(violation)
     if violations:
         print(f"\n{len(violations)} style violation(s) across {len(paths)} file(s)")
         return 1
-    print(f"style: clean ({len(paths)} file(s) checked)")
+    if src_only:
+        print(f"src-docstrings: clean ({len(paths)} file(s) checked)")
+    else:
+        print(f"style: clean ({len(paths)} file(s) checked)")
     return 0
 
 

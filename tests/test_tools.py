@@ -19,9 +19,12 @@ from budgetloop.tools import (
     ToolError,
     ToolRegistry,
     Workspace,
+    default_checks,
     default_registry,
     make_check_tool,
 )
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 class WorkspaceSandboxTests(unittest.TestCase):
@@ -233,6 +236,23 @@ class CheckToolTests(unittest.TestCase):
         registry = default_registry(self.workspace)
         self.assertIn("run_check", registry.names)
         self.assertIn("tests", registry.describe())
+        self.assertIn("style", registry.describe())
+        self.assertIn("src-docstrings", registry.describe())
+
+    def test_default_checks_include_the_src_docstring_gate(self):
+        checks = default_checks()
+        self.assertEqual(
+            checks["src-docstrings"],
+            [sys.executable, "scripts/check_style.py", "src", "--src-docstrings-only"],
+        )
+        self.assertEqual(checks["style"], [sys.executable, "scripts/check_style.py"])
+
+    def test_src_docstring_gate_passes_against_the_repo(self):
+        workspace = Workspace(REPO_ROOT)
+        registry = default_registry(workspace)
+        observation = registry.run("run_check", {"name": "src-docstrings"})
+        self.assertIn("exit_code=0", observation)
+        self.assertIn("src-docstrings: clean", observation)
 
     def test_empty_check_allow_list_is_rejected(self):
         with self.assertRaises(ToolError):

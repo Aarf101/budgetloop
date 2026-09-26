@@ -116,9 +116,11 @@ Four tools ship by default:
 | `run_check` | no | runs one **pre-registered** argv command by name — no shell, no arbitrary command |
 
 `run_check` is the interesting one. The model cannot invent a command; a human
-registered `tests` (see `tools.default_checks`) and the model may only ask for
-that. "The agent can run the tests" and "the agent can run anything" are different
-features, and only the first one belongs in a loop you leave unattended.
+registered `tests`, `style`, and `src-docstrings` (see `tools.default_checks`)
+and the model may only ask for one of those. "The agent can run the tests" and
+"the agent can run anything" are different features, and only the first one
+belongs in a loop you leave unattended. `src-docstrings` is the focused gate
+that fails when any module under `src/` lacks a module docstring.
 
 ## Providers
 

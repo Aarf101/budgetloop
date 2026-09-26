@@ -38,11 +38,12 @@ class ScorecardTestCase(unittest.TestCase):
         check: int = 1,
         edits: int = 0,
         prompts: int = 0,
-        turns: int = 3,
+        turns: int | None = 3,
         notes: str = "",
     ) -> str:
-        """One scorecard line, with everything about it explicit."""
-        return f"{arm},{task},{attempt},{check},{edits},{prompts},{turns},{notes}\n"
+        """One scorecard line; ``turns=None`` writes the blank 'not measured' cell."""
+        turns_cell = "" if turns is None else str(turns)
+        return f"{arm},{task},{attempt},{check},{edits},{prompts},{turns_cell},{notes}\n"
 
     def write(self, rows: list[str]) -> Path:
         """Write raw rows to the fixture scorecard and return its path."""
@@ -144,6 +145,40 @@ class ScorecardReadingTests(ScorecardTestCase):
             SCORER.read_scorecard(self.path.parent / "absent.csv")
 
 
+    def test_unmeasured_turns_are_reported_as_unmeasured_not_zero(self):
+        summary = self.score(
+            [
+                self.row(arm="cold", turns=5),
+                self.row(arm="cold", turns=7),
+                self.row(arm="context", turns=None),
+            ]
+        )
+        self.assertEqual(summary["arms"]["cold"]["mean_agent_turns"], 6.0)
+        self.assertEqual(summary["arms"]["cold"]["turns_measured"], 2)
+        self.assertEqual(summary["arms"]["context"]["turns_measured"], 0)
+        rendered = SCORER.render(summary)
+        self.assertIn("n/m", rendered)
+        self.assertIn("not measured", rendered)
+
+    def test_blank_and_na_spellings_mean_unmeasured(self):
+        summary = self.score(
+            [
+                self.row(arm="cold", turns=None),
+                "cold,T1,2,1,0,0,na,\n",
+                "cold,T1,3,1,0,0,   ,\n",
+                "cold,T1,4,1,0,0,unknown,\n",
+            ]
+        )
+        self.assertEqual(summary["arms"]["cold"]["turns_measured"], 0)
+        self.assertEqual(summary["arms"]["cold"]["first_pass"], 4)
+
+    def test_a_nonsense_turn_count_is_still_an_error(self):
+        self.write(["cold,T1,1,1,0,0,many,\n"])
+        with self.assertRaises(ValueError) as caught:
+            SCORER.read_scorecard(self.path)
+        self.assertIn("must be an integer or blank", str(caught.exception))
+
+
 class ScorecardCliTests(ScorecardTestCase):
     """Exit codes, output shapes, and the shipped template."""
 
@@ -161,9 +196,15 @@ class ScorecardCliTests(ScorecardTestCase):
             self.assertEqual(SCORER.main([str(self.path), "--json"]), 0)
         self.assertEqual(json.loads(output.getvalue())["attempts"], 1)
 
-    def test_main_refuses_the_unfilled_shipped_scorecard(self):
-        with contextlib.redirect_stderr(io.StringIO()):
-            self.assertEqual(SCORER.main([str(REPO_ROOT / "docs" / "experiment-scorecard.csv")]), 2)
+    def test_the_shipped_scorecard_scores_cleanly(self):
+        # The shipped artifact must stay scoreable: it is the lab's raw data.
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(
+                SCORER.main([str(REPO_ROOT / "docs" / "experiment-scorecard.csv")]), 0
+            )
+        text = output.getvalue()
+        self.assertIn("cold", text)
+        self.assertIn("context", text)
 
     def test_template_flag_prints_a_usable_header(self):
         with contextlib.redirect_stdout(io.StringIO()) as output:

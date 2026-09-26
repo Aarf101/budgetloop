@@ -2,7 +2,7 @@
 
 **Prototype:** `budgetloop`, a dependency-free Python agent loop with an explicit
 context budget.
-**Evidence to run yourself:** `make demo` (offline, ~1s), `make test` (172 tests),
+**Evidence to run yourself:** `make demo` (offline, ~1s), `make test` (203 tests),
 `make run TASK='...'`, then `make traces` and `inspect`.
 
 > **Read this first.** The italicised blockquotes below mark the facts that only
@@ -75,7 +75,7 @@ hour.**
 
 | Check | Command | What it proves |
 | --- | --- | --- |
-| Unit tests | `make test` | 172 tests by the end of Lab 2 (111 after Lab 1): budget arithmetic, eviction policy, sandbox escapes, refusal paths, wire format, CLI exit codes, the checks themselves |
+| Unit tests | `make test` | 203 tests by the end of Lab 2 (111 after Lab 1): budget arithmetic, eviction policy, sandbox escapes, refusal paths, wire format, CLI exit codes, and the checks themselves |
 | House style | `make style` | tab/width/docstring/placeholder rules, enforced by `scripts/check_style.py` |
 | Self-check | `make check` | style + skill validation + tests, as one command the agent can run |
 

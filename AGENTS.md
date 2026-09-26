@@ -35,7 +35,7 @@ do it yourself: `PYTHONPATH=src python3 -m budgetloop.cli --help`.
 
 ```bash
 make check                 # the gate: style + docstrings + skill validation + tests, ~0.5s
-make test                  # 200 tests: PYTHONPATH=src python3 -m unittest discover -s tests -t .
+make test                  # 203 tests: PYTHONPATH=src python3 -m unittest discover -s tests -t .
 make style                 # python3 scripts/check_style.py .
 make src-docstrings        # python3 scripts/check_style.py src --src-docstrings-only
 make tests-docstrings      # python3 scripts/check_style.py tests --test-docstrings-only

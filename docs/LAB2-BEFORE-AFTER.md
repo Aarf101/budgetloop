@@ -53,7 +53,7 @@ rules).
 | Check green | the command above exited 0 at the end of the attempt | separates "plausible" from "passes" |
 | Human edits | times a human changed the agent's code before the check went green | the difference between *assisted* and *reliable* |
 | Clarification prompts | times the human had to explain something twice | how much context the agent lacked |
-| Agent turns | messages the agent took, failures included | the cost side: a green run in 30 turns is not a win |
+| Agent turns | messages the agent took, failures included; `n/m` when it was not recorded | the cost side: a green run in 30 turns is not a win |
 
 **Do not loosen the definition of first-pass success.** If the agent got there with
 two hand-edits and a hint, the run is a failure with a note. That is the data.
@@ -89,25 +89,86 @@ context,TASK-A,1,1,0,0,4,"found scripts/check_style.py via AGENTS.md and extende
 
 ## Results
 
-> **This table is deliberately empty.** Fill it from your own runs. The scorer
-> refuses to produce a number from the template, and numbers invented here would
-> defeat the point of the lab.
+Two runs, same task, same tool, one variable: whether `AGENTS.md` and the skill were
+present. **TASK-A, TASK-B and TASK-C were all already implemented in this repository
+before the experiment began**, so the pair below uses a fresh task of the same kind.
+
+> **TASK-D** — "Add a check that fails if any test module under `tests/` lacks a
+> docstring, and wire it into the existing checks."
+>
+> **Check:** `make check` green in that repository, *and* the rule implemented
+> inside `scripts/check_style.py` rather than a new one-off script.
 
 | Arm | Attempts | First-pass | Check green | Mean turns | Mean edits |
 | --- | --- | --- | --- | --- | --- |
-| cold |  |  |  |  |  |
-| context |  |  |  |  |  |
+| cold (no `AGENTS.md`, no skill) | 1 | 1/1 (100%) | 100% | n/m | 0.0 |
+| context (both present) | 1 | 1/1 (100%) | 100% | n/m | 0.0 |
 
 Per task:
 
 | Task | cold first-pass | context first-pass | What the difference was actually about |
 | --- | --- | --- | --- |
-| TASK-A |  |  |  |
-| TASK-B |  |  |  |
-| TASK-C |  |  |  |
+| TASK-D | 1/1 | 1/1 | Both correct; the governed run stayed inside the repo's conventions and maintained the brief. See below. |
 
-`python3 scripts/score_experiment.py docs/experiment-scorecard.csv` fills the
-arithmetic; the last column is yours to write, and it is the interesting one.
+*n/m = not measured: these sessions ran through the editor's agent host, whose
+transcripts are not readable from this machine, so the turn count was not recorded.
+The scorer reports it as `n/m` rather than as 0, because "nobody measured it" and
+"it was zero" are different facts. n = 1 per arm: treat every percentage here as a
+direction of travel, not a measurement of the model.*
+
+### The task had to be new, and that is itself data
+
+**TASK-A, TASK-B and TASK-C were all already implemented in this repository before
+the experiment began** — three earlier cold attempts had leaked the governance layer
+and their work had been kept on merit. The pair above therefore uses a fresh task of
+the same kind, with the same kind of machine-decidable check.
+
+### What differed, when the outcome didn't
+
+Both runs passed first try, with no human edits and no clarification prompts. The
+treatment did not change *correctness*. It changed *consistency*:
+
+| Dimension | cold (no brief) | context (brief present) |
+| --- | --- | --- |
+| `make` target name | `make test-docstrings` | `make tests-docstrings` |
+| `run_check` key | `test-docstrings` | `tests-docstrings` |
+| Existing convention | already `src-docstrings` (directory name + `-docstrings`) | matched that pattern |
+| Brief maintained | n/a — no brief existed | `AGENTS.md` updated: new gate documented, test count 177 → 200 |
+| Tests added | +6 (123 → 129) | +7 (193 → 200) |
+
+Read the first three rows together. The repository already had a gate named
+`src-docstrings`; the governed run produced `tests-docstrings` — the same pattern
+applied to the new directory — and recorded it in the brief. The ungoverned run
+produced `test-docstrings`, which works but breaks the pattern, and left nothing to
+update because there was nothing there. **A reviewer has to catch that by hand; the
+brief said it without being asked.**
+
+### The bigger finding: the control condition is not achievable
+
+Three earlier attempts to run TASK-A/B/C cold failed in three different ways, and
+those failures are the most interesting result of this lab:
+
+| Attempt | How the control leaked |
+| --- | --- |
+| TASK-A | the agent wrote `AGENTS.md` from memory before starting the task |
+| TASK-B | the agent recreated it again, despite an explicit instruction not to touch docs |
+| TASK-C | the whole governance layer (brief, skill, docs) reappeared mid-run, byte-identical to HEAD, from git history or editor state |
+
+The fourth attempt fixed the method rather than the agent: the cold repository was
+rebuilt with the governance files removed **from git history**, so no command could
+restore them, and the README no longer pointed at files that did not exist. That run
+stayed cold — no brief appeared — and it is the one reported above.
+
+That is the durable lesson of this lab: when you measure an agent, you are measuring
+the agent *plus everything it can reach*. Some of the context lives in the model, and
+no file operation removes it.
+
+The scorer for this table:
+
+```bash
+python3 scripts/score_experiment.py docs/experiment-scorecard.csv
+```
+
 
 ## The reproducible half: the same question, offline
 
@@ -144,11 +205,20 @@ verdict comes from real sessions.
    satisfied it, not that the change is good — which is why the per-task table's
    last column asks what the difference was about, in words.
 
-## Conclusion (fill in)
+## Conclusion
 
-> With the treatment, first-pass success moved from ___% to ___% over ___ attempts
-> per arm. The most useful difference was not the rate but the *shape* of the
-> failures: cold runs failed by inventing conventions (___); context runs failed by
-> (___). That is the transferable finding — context engineering does not make the
-> model smarter, it changes which mistakes are still available to make.
+> With the treatment, first-pass success did not move: 1/1 in both arms, no human
+> edits and no clarification prompts either way. The useful difference was not the
+> rate but the *shape* of the result: the ungoverned run invented a gate name
+> (`test-docstrings`) that broke the repository's existing `src-docstrings` pattern
+> and had no brief to update, while the governed run followed the pattern
+> (`tests-docstrings`) and kept `AGENTS.md` current. Context engineering did not make
+> the model smarter here — it removed a class of small mistakes that are expensive to
+> catch in review, and it carried the documentation along with the change.
+>
+> The stronger result is methodological: three attempts to hold the control condition
+> failed, because the agent reconstructed or restored the treatment each time. The
+> fourth attempt fixed the *method* — governance removed from git history, not merely
+> from the working tree — instead of asking the agent to behave, and that run stayed
+> cold. Measuring an agent means measuring the agent plus everything it can reach.
 

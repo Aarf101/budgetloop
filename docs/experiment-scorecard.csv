@@ -1,12 +1,9 @@
 # Lab 2 scorecard — one row per attempt.
-# Copy this file to docs/experiment-scorecard.csv and replace the rows with your own.
 # Definition of first-pass success (do not loosen it): the task's stated check is
 # green, a human edited none of the agent's code, and at most one clarification
 # prompt was needed.
+# agent_turns may be left blank when it was not measured; the scorer reports that
+# as "n/m" and never treats it as zero.
 arm,task_id,attempt,check_passed,human_edits,clarification_prompts,agent_turns,notes
-cold,TASK-A,1,,,,,
-context,TASK-A,1,,,,,
-cold,TASK-B,1,,,,,
-context,TASK-B,1,,,,,
-cold,TASK-C,1,,,,,
-context,TASK-C,1,,,,,
+cold,TASK-D,1,1,0,0,,"no brief present; named the gate make test-docstrings (breaks the existing src-docstrings pattern); 129 tests"
+context,TASK-D,1,1,0,0,,"brief present; named it tests-docstrings to match the convention and updated AGENTS.md (177 -> 200 tests)"

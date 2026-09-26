@@ -46,7 +46,7 @@ TEMPLATE = """\
 # check_passed        : 1 if the task's stated check was green at the end
 # human_edits         : how many times a human edited the agent's code
 # clarification_prompts: how many times the human had to explain something again
-# agent_turns         : messages the agent took, including failed attempts
+# agent_turns         : messages the agent took, or blank if not measured
 arm,task_id,attempt,check_passed,human_edits,clarification_prompts,agent_turns,notes
 cold,TASK-A,1,,,,,replace with your measurement
 context,TASK-A,1,,,,,replace with your measurement
@@ -67,7 +67,8 @@ class Attempt:
     check_passed: bool
     human_edits: int
     clarification_prompts: int
-    agent_turns: int
+    #: None means "not measured". That is not the same as 0, and the summary says so.
+    agent_turns: int | None = None
 
     @property
     def first_pass(self) -> bool:
@@ -88,6 +89,23 @@ def _as_int(row: dict[str, str], field: str, line: int) -> int:
         raise ValueError(f"line {line}: {field} must be an integer, got {raw!r}") from exc
 
 
+def _as_optional_int(row: dict[str, str], field: str, line: int) -> int | None:
+    """Read a cost field that may legitimately be unmeasured.
+
+    A blank cell, ``n/a`` or ``unknown`` records "not measured", which is not the
+    same as zero: the mean of a metric nobody recorded is unknown, not 0.0.
+    """
+    raw = (row.get(field) or "").strip().lower()
+    if raw in {"", "na", "n/a", "-", "unknown", "not measured"}:
+        return None
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise ValueError(
+            f"line {line}: {field} must be an integer or blank, got {raw!r}"
+        ) from exc
+
+
 def _attempt_from_row(row: dict[str, str], offset: int) -> Attempt:
     """Turn one CSV row into an Attempt, refusing anything ambiguous."""
     arm = (row.get("arm") or "").strip().lower()
@@ -100,7 +118,7 @@ def _attempt_from_row(row: dict[str, str], offset: int) -> Attempt:
         check_passed=_as_int(row, "check_passed", offset) == 1,
         human_edits=_as_int(row, "human_edits", offset),
         clarification_prompts=_as_int(row, "clarification_prompts", offset),
-        agent_turns=_as_int(row, "agent_turns", offset),
+        agent_turns=_as_optional_int(row, "agent_turns", offset),
     )
 
 
@@ -137,12 +155,14 @@ def summarise(attempts: Sequence[Attempt]) -> dict[str, Any]:
         if not rows:
             continue
         first_pass = sum(1 for row in rows if row.first_pass)
+        measured_turns = [row.agent_turns for row in rows if row.agent_turns is not None]
         arms[arm] = {
             "attempts": len(rows),
             "first_pass": first_pass,
             "first_pass_rate": round(first_pass / len(rows), 3),
             "check_pass_rate": round(sum(1 for row in rows if row.check_passed) / len(rows), 3),
-            "mean_agent_turns": _mean([row.agent_turns for row in rows]),
+            "mean_agent_turns": _mean(measured_turns),
+            "turns_measured": len(measured_turns),
             "mean_human_edits": _mean([row.human_edits for row in rows]),
             "mean_clarifications": _mean([row.clarification_prompts for row in rows]),
             "inflated_success": sum(
@@ -160,10 +180,12 @@ def summarise(attempts: Sequence[Attempt]) -> dict[str, Any]:
                 if attempt.arm == arm and attempt.task_id == task_id
             ]
             if rows:
+                measured = [row.agent_turns for row in rows if row.agent_turns is not None]
                 per_task[arm] = {
                     "attempts": len(rows),
                     "first_pass": sum(1 for row in rows if row.first_pass),
-                    "mean_agent_turns": _mean([row.agent_turns for row in rows]),
+                    "mean_agent_turns": _mean(measured),
+                    "turns_measured": len(measured),
                 }
         tasks[task_id] = per_task
 
@@ -183,6 +205,11 @@ def summarise(attempts: Sequence[Attempt]) -> dict[str, Any]:
     }
 
 
+def _turns_cell(stats: dict[str, Any]) -> str:
+    """Format a mean-turns value, distinguishing 'not measured' from zero."""
+    return f"{stats['mean_agent_turns']:g}" if stats["turns_measured"] else "n/m"
+
+
 def render(summary: dict[str, Any]) -> str:
     """Render the summary as plain text for a terminal or a report."""
     lines = [f"attempts recorded: {summary['attempts']}", ""]
@@ -193,14 +220,19 @@ def render(summary: dict[str, Any]) -> str:
         rate = f"{stats['first_pass']}/{stats['attempts']} ({stats['first_pass_rate']:.0%})"
         lines.append(
             f"{arm:<9}{stats['attempts']:>10}{rate:>16}"
-            f"{stats['check_pass_rate']:>13.0%}{stats['mean_agent_turns']:>8}"
+            f"{stats['check_pass_rate']:>13.0%}{_turns_cell(stats):>8}"
             f"{stats['mean_human_edits']:>7}"
+        )
+    if any(not stats["turns_measured"] for stats in summary["arms"].values()):
+        lines.append(
+            "  turns: n/m = not measured (means use measured rows only;"
+            " 'not measured' is not the same as zero)"
         )
     lines += ["", "per task:"]
     for task_id, per_task in summary["tasks"].items():
         parts = [
             f"{arm}: {stats['first_pass']}/{stats['attempts']} first-pass, "
-            f"{stats['mean_agent_turns']} turns"
+            f"{_turns_cell(stats)} turns"
             for arm, stats in per_task.items()
         ]
         lines.append(f"  {task_id:<12} " + " | ".join(parts))

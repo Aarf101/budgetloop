@@ -112,6 +112,45 @@ class CheckerRuleTests(unittest.TestCase):
             with contextlib.redirect_stderr(io.StringIO()):
                 self.assertEqual(STYLE.main([str(root), "--src-docstrings-only"]), 2)
 
+    def test_missing_docstring_under_tests_is_a_test_docstring_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            package = root / "tests"
+            package.mkdir(parents=True)
+            target = package / "nodoc.py"
+            target.write_text("value = 1\n", encoding="utf-8")
+            rules = [violation.rule for violation in STYLE.check_file(target)]
+            self.assertIn("module-docstring", rules)
+            self.assertIn("test-docstring", rules)
+            self.assertEqual(
+                [violation.rule for violation in STYLE.check_test_docstrings(root / "tests")],
+                ["test-docstring"],
+            )
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(STYLE.main([str(root / "tests"), "--test-docstrings-only"]), 1)
+
+    def test_documented_tests_module_passes_the_test_docstring_gate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            package = root / "tests"
+            package.mkdir(parents=True)
+            (package / "ok.py").write_text('"""Documented."""\n', encoding="utf-8")
+            self.assertEqual(STYLE.check_test_docstrings(root / "tests"), [])
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(STYLE.main([str(root / "tests"), "--test-docstrings-only"]), 0)
+
+    def test_test_docstring_gate_refuses_paths_outside_tests(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "other.py").write_text("value = 1\n", encoding="utf-8")
+            with contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(STYLE.main([str(root), "--test-docstrings-only"]), 2)
+
+    def test_docstring_only_flags_cannot_be_combined(self):
+        arguments = ["src", "tests", "--src-docstrings-only", "--test-docstrings-only"]
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(STYLE.main(arguments), 2)
+
     def test_public_function_without_a_docstring_is_flagged(self):
         self.assertIn("public-docstring", self.check('"""Doc."""\n\n\ndef go():\n    return 1\n'))
 
@@ -134,6 +173,9 @@ class RepositoryIsCleanTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()) as output:
             code = STYLE.main([str(REPO_ROOT)])
         self.assertEqual(code, 0, output.getvalue())
+
+    def test_the_repository_tests_are_all_documented(self):
+        self.assertEqual(STYLE.check_test_docstrings(REPO_ROOT / "tests"), [])
 
     def test_skip_directories_are_not_scanned(self):
         with tempfile.TemporaryDirectory() as tmp:

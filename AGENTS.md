@@ -34,10 +34,11 @@ do it yourself: `PYTHONPATH=src python3 -m budgetloop.cli --help`.
 ## Checks (done means these pass)
 
 ```bash
-make check                 # the gate: style + skill validation + tests, in ~0.5s
-make test                  # 177 tests: PYTHONPATH=src python3 -m unittest discover -s tests -t .
+make check                 # the gate: style + docstrings + skill validation + tests, ~0.5s
+make test                  # 200 tests: PYTHONPATH=src python3 -m unittest discover -s tests -t .
 make style                 # python3 scripts/check_style.py .
 make src-docstrings        # python3 scripts/check_style.py src --src-docstrings-only
+make tests-docstrings      # python3 scripts/check_style.py tests --test-docstrings-only
 make skill-lint            # python3 scripts/validate_skill.py skills/*
 ```
 
@@ -62,7 +63,9 @@ Enforced by `scripts/check_style.py`; the rest are conventions:
 - Every module has a docstring; every public top-level class and function has one.
   Every module under `src/` is additionally covered by the `src-docstring` gate
   (`python3 scripts/check_style.py src --src-docstrings-only`, also available to
-  the agent as `run_check` name `src-docstrings`).
+  the agent as `run_check` name `src-docstrings`); `tests/` has the companion
+  `test-docstring` gate (`python3 scripts/check_style.py tests --test-docstrings-only`,
+  also available as `run_check` name `tests-docstrings`).
 - **Library code never prints.** `print` is allowed only in `src/budgetloop/cli.py`
   and under `scripts/`; the loop returns values and statuses instead of talking.
 - Raise typed errors (`ToolError`, `SandboxViolation`, `ProviderError`,

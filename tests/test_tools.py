@@ -238,6 +238,7 @@ class CheckToolTests(unittest.TestCase):
         self.assertIn("tests", registry.describe())
         self.assertIn("style", registry.describe())
         self.assertIn("src-docstrings", registry.describe())
+        self.assertIn("tests-docstrings", registry.describe())
 
     def test_default_checks_include_the_src_docstring_gate(self):
         checks = default_checks()
@@ -247,12 +248,26 @@ class CheckToolTests(unittest.TestCase):
         )
         self.assertEqual(checks["style"], [sys.executable, "scripts/check_style.py"])
 
+    def test_default_checks_include_the_tests_docstring_gate(self):
+        checks = default_checks()
+        self.assertEqual(
+            checks["tests-docstrings"],
+            [sys.executable, "scripts/check_style.py", "tests", "--test-docstrings-only"],
+        )
+
     def test_src_docstring_gate_passes_against_the_repo(self):
         workspace = Workspace(REPO_ROOT)
         registry = default_registry(workspace)
         observation = registry.run("run_check", {"name": "src-docstrings"})
         self.assertIn("exit_code=0", observation)
         self.assertIn("src-docstrings: clean", observation)
+
+    def test_tests_docstring_gate_passes_against_the_repo(self):
+        workspace = Workspace(REPO_ROOT)
+        registry = default_registry(workspace)
+        observation = registry.run("run_check", {"name": "tests-docstrings"})
+        self.assertIn("exit_code=0", observation)
+        self.assertIn("tests-docstrings: clean", observation)
 
     def test_empty_check_allow_list_is_rejected(self):
         with self.assertRaises(ToolError):

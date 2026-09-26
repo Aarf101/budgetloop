@@ -15,15 +15,20 @@ Rules
      the focused check for TASK-A; wired into `make check` via
      `make src-docstrings` and into the agent's `run_check` via the
      `src-docstrings` entry in `tools.default_checks`)
-  7. no bare ``except:`` (it swallows KeyboardInterrupt too)
-  8. no TODO/FIXME/XXX markers and no NotImplementedError placeholders
+  7. every module under tests/ must have a docstring (test-docstring gate,
+     the companion to rule 6; wired into `make check` via
+     `make tests-docstrings` and into the agent's `run_check` via the
+     `tests-docstrings` entry in `tools.default_checks`)
+  8. no bare ``except:`` (it swallows KeyboardInterrupt too)
+  9. no TODO/FIXME/XXX markers and no NotImplementedError placeholders
 
 Usage: python scripts/check_style.py [PATH ...] [--src-docstrings-only]
+       python scripts/check_style.py [PATH ...] [--test-docstrings-only]
 Exit codes: 0 clean, 1 violations found, 2 bad usage.
 
-With --src-docstrings-only, only the src-docstring gate runs: every module
-under src/ must have a module docstring. That is the focused check TASK-A
-asks to be wired into the existing checks.
+With --src-docstrings-only or --test-docstrings-only, only that focused gate
+runs: every module under src/ (respectively tests/) must have a module
+docstring. The two flags are mutually exclusive.
 """
 
 from __future__ import annotations
@@ -76,6 +81,11 @@ def _is_src_module(posix_path: str) -> bool:
     return posix_path == "src" or posix_path.startswith("src/") or "/src/" in posix_path
 
 
+def _is_tests_module(posix_path: str) -> bool:
+    """Whether ``posix_path`` is a module under ``tests/`` (the companion scope)."""
+    return posix_path == "tests" or posix_path.startswith("tests/") or "/tests/" in posix_path
+
+
 def check_src_docstrings(root: Path | str = "src") -> list[Violation]:
     """Fail when any module under ``src/`` is missing its module docstring.
 
@@ -91,6 +101,25 @@ def check_src_docstrings(root: Path | str = "src") -> list[Violation]:
     for path in python_files([base]):
         violations.extend(
             violation for violation in check_file(path) if violation.rule == "src-docstring"
+        )
+    return violations
+
+
+def check_test_docstrings(root: Path | str = "tests") -> list[Violation]:
+    """Fail when any module under ``tests/`` is missing its module docstring.
+
+    The companion to :func:`check_src_docstrings`: tests are the contract in
+    this repository, so a test module that does not say what it pins down is a
+    defect worth a dedicated gate. Reuses :func:`check_file` and keeps only the
+    ``test-docstring`` violations.
+    """
+    base = Path(root)
+    if not base.exists():
+        return [Violation(str(base), 0, "test-docstring", f"no such path: {base}")]
+    violations: list[Violation] = []
+    for path in python_files([base]):
+        violations.extend(
+            violation for violation in check_file(path) if violation.rule == "test-docstring"
         )
     return violations
 
@@ -180,6 +209,10 @@ def check_file(path: Path) -> list[Violation]:
             violations.append(
                 Violation(posix, 1, "src-docstring", "add a module docstring under src/")
             )
+        if _is_tests_module(posix):
+            violations.append(
+                Violation(posix, 1, "test-docstring", "add a module docstring under tests/")
+            )
     if not _print_allowed(posix):
         # Scanned through the AST, not the raw text: a string that merely
         # contains "print(" is not a call to print.
@@ -208,7 +241,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Check every path given (default: the repo root) and print the violations."""
     arguments = list(sys.argv[1:] if argv is None else argv)
     src_only = "--src-docstrings-only" in arguments
-    arguments = [argument for argument in arguments if argument != "--src-docstrings-only"]
+    tests_only = "--test-docstrings-only" in arguments
+    focused_flags = ("--src-docstrings-only", "--test-docstrings-only")
+    arguments = [argument for argument in arguments if argument not in focused_flags]
+    if src_only and tests_only:
+        print(
+            "choose one of --src-docstrings-only or --test-docstrings-only",
+            file=sys.stderr,
+        )
+        return 2
     roots = [Path(argument) for argument in arguments] or [Path(".")]
     missing = [root for root in roots if not root.exists()]
     if missing:
@@ -220,12 +261,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     violations: list[Violation] = []
     for path in paths:
         violations.extend(check_file(path))
-    if src_only:
-        violations = [violation for violation in violations if violation.rule == "src-docstring"]
-        # A focused run on paths outside src/ checks nothing, so say so loudly
-        # instead of reporting a misleading clean bill for src/.
-        if not any(_is_src_module(_normalise(path)) for path in paths):
-            print("no modules under src/ in the checked paths", file=sys.stderr)
+    if src_only or tests_only:
+        rule = "src-docstring" if src_only else "test-docstring"
+        scope = "src/" if src_only else "tests/"
+        label = "src-docstrings" if src_only else "tests-docstrings"
+        matcher = _is_src_module if src_only else _is_tests_module
+        violations = [violation for violation in violations if violation.rule == rule]
+        # A focused run on paths outside the scope checks nothing, so say so
+        # loudly instead of reporting a misleading clean bill for it.
+        if not any(matcher(_normalise(path)) for path in paths):
+            print(f"no modules under {scope} in the checked paths", file=sys.stderr)
             return 2
 
     for violation in violations:
@@ -233,8 +278,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     if violations:
         print(f"\n{len(violations)} style violation(s) across {len(paths)} file(s)")
         return 1
-    if src_only:
-        print(f"src-docstrings: clean ({len(paths)} file(s) checked)")
+    if src_only or tests_only:
+        print(f"{label}: clean ({len(paths)} file(s) checked)")
     else:
         print(f"style: clean ({len(paths)} file(s) checked)")
     return 0

@@ -286,6 +286,8 @@ def default_checks() -> dict[str, list[str]]:
         # docstring. Lives in scripts/check_style.py, not a one-off script.
         "style": [python, "scripts/check_style.py"],
         "src-docstrings": [python, "scripts/check_style.py", "src", "--src-docstrings-only"],
+        # The tests/ companion gate: fails when any test module lacks a docstring.
+        "tests-docstrings": [python, "scripts/check_style.py", "tests", "--test-docstrings-only"],
     }
 
 

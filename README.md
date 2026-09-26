@@ -32,7 +32,7 @@ The two questions the labs ask of this code are:
 ```bash
 make demo     # offline, no API key: a scripted run that compacts and refuses a write
 make test     # the unit test suite (stdlib unittest, no pytest required)
-make check    # style + skill validation + tests: the gate before "done"
+make check    # style + docstring gates + skill validation + tests: the gate before "done"
 make run TASK='summarise the README'   # drive the loop once, offline
 ```
 
@@ -116,11 +116,12 @@ Four tools ship by default:
 | `run_check` | no | runs one **pre-registered** argv command by name — no shell, no arbitrary command |
 
 `run_check` is the interesting one. The model cannot invent a command; a human
-registered `tests`, `style`, and `src-docstrings` (see `tools.default_checks`)
-and the model may only ask for one of those. "The agent can run the tests" and
-"the agent can run anything" are different features, and only the first one
-belongs in a loop you leave unattended. `src-docstrings` is the focused gate
-that fails when any module under `src/` lacks a module docstring.
+registered `tests`, `style`, `src-docstrings` and `tests-docstrings` (see
+`tools.default_checks`), and the model may only ask for one of those. "The
+agent can run the tests" and "the agent can run anything" are different
+features, and only the first one belongs in a loop you leave unattended. The
+two docstring gates fail when any module under `src/` (respectively `tests/`)
+lacks a module docstring.
 
 ## Providers
 

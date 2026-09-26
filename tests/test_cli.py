@@ -7,11 +7,13 @@ a `--json` mode that stays parseable.
 
 from __future__ import annotations
 
+import ast
 import contextlib
 import io
 import json
 import os
 import re
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -25,6 +27,7 @@ from budgetloop.cli import (
     load_script,
     main,
 )
+from budgetloop.tools import ApprovalDenied, Workspace, demo_registry
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -303,6 +306,130 @@ class DemoTests(unittest.TestCase):
         self.assertIsNotNone(match, "the demo should print a budget report")
         self.assertGreaterEqual(int(match.group(1)), 1)
         self.assertFalse((REPO_ROOT / "demo-scratch.txt").exists())
+
+
+class DemoNoWriteProofTests(unittest.TestCase):
+    """The proof that ``make demo`` can never write a file.
+
+    The claim is structural, not anecdotal: the demo registry has no
+    subprocess tool (so no child process can write outside the approval
+    gate), its only mutating tool refuses before touching the disk, and
+    both loop passes run with ``trace_dir=None`` (so no trace is written).
+    These tests fail if any of those properties regress, which is exactly
+    what would silently reintroduce a demo write path.
+    """
+
+    def test_demo_registry_has_no_write_capable_tool(self):
+        workspace = Workspace(REPO_ROOT)
+        registry = demo_registry(workspace)
+        self.assertEqual(registry.names, ("list_files", "read_file", "write_file"))
+        self.assertNotIn("run_check", registry.names)
+        for name in registry.names:
+            tool = registry.get(name)
+            if name == "write_file":
+                self.assertTrue(tool.mutates)
+            else:
+                self.assertFalse(tool.mutates, f"{name} must stay read-only")
+
+    def test_demo_write_handler_never_touches_the_disk(self):
+        workspace = Workspace(REPO_ROOT)
+        with mock.patch.object(
+            Workspace, "write_file", side_effect=AssertionError("must not run")
+        ):
+            tool = demo_registry(workspace).get("write_file")
+            self.assertNotIn("Workspace", type(tool.handler).__name__)
+            with self.assertRaises(ApprovalDenied) as caught:
+                tool.handler(path="demo-scratch.txt", content="x")
+        self.assertIn("no approval policy configured", str(caught.exception))
+        self.assertFalse((REPO_ROOT / "demo-scratch.txt").exists())
+
+    def test_demo_run_refuses_write_even_with_an_approving_policy(self):
+        workspace = Workspace(REPO_ROOT)
+        with mock.patch.object(
+            Workspace, "write_file", side_effect=AssertionError("must not run")
+        ):
+            registry = demo_registry(workspace)
+            with self.assertRaises(ApprovalDenied):
+                registry.run(
+                    "write_file",
+                    {"path": "demo-scratch.txt", "content": "x"},
+                    approve=lambda tool, args: True,
+                )
+        self.assertFalse((REPO_ROOT / "demo-scratch.txt").exists())
+
+    def test_demo_has_no_subprocess_or_trace_write_path(self):
+        source = (REPO_ROOT / "src" / "budgetloop" / "cli.py").read_text(
+            encoding="utf-8"
+        )
+        tree = ast.parse(source)
+        demo = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef) and node.name == "cmd_demo"
+        )
+        names = {
+            node.id for node in ast.walk(demo) if isinstance(node, ast.Name)
+        }
+        attrs = {
+            node.attr for node in ast.walk(demo) if isinstance(node, ast.Attribute)
+        }
+        strings = {
+            node.value
+            for node in ast.walk(demo)
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        }
+        self.assertIn("demo_registry", names)
+        self.assertNotIn("default_registry", names)
+        self.assertNotIn("default_checks", names)
+        self.assertNotIn("subprocess", names | attrs)
+        self.assertNotIn("Popen", names | attrs)
+        self.assertNotIn("run_check", strings)
+        keywords = {
+            node.arg
+            for node in ast.walk(demo)
+            if isinstance(node, ast.keyword) and node.arg is not None
+        }
+        self.assertIn("trace_dir", keywords)
+        values = [
+            ast.literal_eval(node.value)
+            for node in ast.walk(demo)
+            if isinstance(node, ast.keyword)
+            and node.arg == "trace_dir"
+            and isinstance(node.value, ast.Constant)
+        ]
+        self.assertTrue(values, "cmd_demo must pass trace_dir explicitly")
+        self.assertTrue(all(value is None for value in values))
+
+    def test_demo_command_writes_nothing_with_writes_trapped(self):
+        sentinel = REPO_ROOT / "demo-scratch.txt"
+        if sentinel.exists():
+            sentinel.unlink()
+        real_open = open
+
+        def _trapped_open(file, mode="r", *args, **kwargs):
+            if any(flag in str(mode) for flag in ("w", "a", "x", "+")):
+                raise AssertionError(f"demo must not open for writing: {file!r}")
+            return real_open(file, mode, *args, **kwargs)
+
+        with mock.patch.object(
+            Workspace, "write_file", side_effect=AssertionError("disk write")
+        ), mock.patch(
+            "subprocess.run", side_effect=AssertionError("subprocess write")
+        ), mock.patch(
+            "subprocess.Popen", side_effect=AssertionError("subprocess write")
+        ), mock.patch(
+            "pathlib.Path.write_text", side_effect=AssertionError("Path write")
+        ), mock.patch(
+            "pathlib.Path.write_bytes", side_effect=AssertionError("Path write")
+        ), mock.patch(
+            "pathlib.Path.mkdir", side_effect=AssertionError("mkdir")
+        ), mock.patch(
+            "builtins.open", side_effect=_trapped_open
+        ):
+            code, output = invoke(["demo", "--workspace", str(REPO_ROOT)])
+        self.assertIn(code, (EXIT_OK, EXIT_GUARDRAIL))
+        self.assertIn("no approval policy configured", output)
+        self.assertFalse(sentinel.exists())
 
 
 class InspectTests(unittest.TestCase):

@@ -34,6 +34,7 @@ from .tools import (
     ToolRegistry,
     Workspace,
     default_registry,
+    demo_registry,
 )
 
 __version__ = "0.1.0"
@@ -64,6 +65,7 @@ __all__ = [
     "ToolRegistry",
     "Workspace",
     "default_registry",
+    "demo_registry",
     "estimate_tokens",
     "final_reply",
     "system_message",

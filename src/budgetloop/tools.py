@@ -327,3 +327,57 @@ def default_registry(
     )
     registry.register(make_check_tool(workspace, checks or default_checks()))
     return registry
+
+
+def _refuse_demo_write(path: str, content: str) -> str:
+    # Defense in depth: the demo's write tool is refused twice. The registry
+    # has no approval policy (fail closed), and even if a policy were passed
+    # the handler itself never touches the disk.
+    raise ApprovalDenied(
+        "refusing to run mutating tool 'write_file': no approval policy "
+        "configured (fail closed) -- the demo registry never writes"
+    )
+
+
+def demo_registry(workspace: Workspace) -> ToolRegistry:
+    """The demo's toolbelt: reads plus a write that can never succeed.
+
+    The demo must prove ``make demo`` never writes a file, so its registry is
+    deliberately smaller than :func:`default_registry`: there is no approval
+    policy (a mutating tool without one is refused, fail closed) and,
+    crucially, no ``run_check`` tool -- a subprocess can write files outside
+    the approval gate, so a no-write demo must not register one.
+    """
+    registry = ToolRegistry(workspace=workspace, approve=None)
+    registry.register(
+        Tool(
+            name="read_file",
+            description="Read a UTF-8 text file inside the workspace.",
+            parameters={"path": "workspace-relative path, e.g. README.md"},
+            handler=workspace.read_file,
+        )
+    )
+    registry.register(
+        Tool(
+            name="list_files",
+            description="List workspace files matching a glob pattern.",
+            parameters={"pattern": "glob such as **/*.py; defaults to **/*"},
+            handler=lambda pattern="**/*": workspace.list_files(pattern),
+        )
+    )
+    registry.register(
+        Tool(
+            name="write_file",
+            description=(
+                "Create or overwrite a text file inside the workspace."
+                " Requires human approval."
+            ),
+            parameters={
+                "path": "workspace-relative path",
+                "content": "full new file content",
+            },
+            handler=_refuse_demo_write,
+            mutates=True,
+        )
+    )
+    return registry

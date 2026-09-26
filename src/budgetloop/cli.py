@@ -33,7 +33,7 @@ from .providers import (
     final_reply,
     tool_call_reply,
 )
-from .tools import ApproveFn, Tool, Workspace, default_checks, default_registry
+from .tools import ApproveFn, Tool, Workspace, default_checks, default_registry, demo_registry
 
 EXIT_OK = 0
 EXIT_GUARDRAIL = 1
@@ -241,8 +241,11 @@ def cmd_demo(args: argparse.Namespace) -> int:
     """
     task = "Audit this repository's context budget and report what you find."
     workspace = Workspace(args.workspace, max_read_bytes=1_200)
-    # No approval policy on purpose: this demonstrates the fail-closed path.
-    registry = default_registry(workspace)
+    # No child-process tool on purpose: the demo proves
+    # ``make demo`` cannot write a file. The gated write is refused before
+    # its handler runs (fail closed), ``run_check`` is not registered at all,
+    # and both passes below run with trace_dir=None, so no trace is written.
+    registry = demo_registry(workspace)
     limits = {"budget": 1_000_000, "max_steps": 8, "trace_dir": None}
     unchallenged = AgentLoop(
         ScriptedProvider(replies=_demo_replies(), name="scripted(demo)"),

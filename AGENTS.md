@@ -12,10 +12,11 @@ ledger, grouped compaction, a workspace sandbox, an approval gate and a JSON tra
 per run. Layout:
 
 - `src/budgetloop/` — the package: `messages`, `context`, `tools`, `providers`, `loop`, `cli`
-- `tests/` — one module per boundary; `tests/test_style_tool.py` tests the checker itself
-- `scripts/` — the repo's checks: `check_style.py`, `validate_skill.py`, `score_experiment.py`
-- `skills/write-agents-md/` — the reusable Agent Skill (SKILL.md + scripts/ + references/ + assets/)
-- `docs/` — the Lab 2 protocol and the agent-CLI setup notes
+- `tests/` — one module per boundary; `tests/test_style_tool.py` tests the checker itself, and `tests/fixtures/` holds a committed trace so a fresh clone passes
+- `scripts/` — the repo's checks and tools: `check_style.py`, `check_docs.py`, `validate_skill.py`, `score_experiment.py`, `run_experiment.py`, `render_demo_gif.sh`
+- `skills/` — the two Agent Skills, symlinked from `.claude/skills/` for discovery
+- `docs/` — the Lab 2 protocol, the scorecard, the agent-CLI setup notes, the demo GIF
+- `.github/workflows/check.yml` — runs this repository's gate on every push
 - `.budgetloop/traces/` — runtime artifacts, gitignored; never edit or commit them
 
 ## Setup
@@ -34,13 +35,24 @@ do it yourself: `PYTHONPATH=src python3 -m budgetloop.cli --help`.
 ## Checks (done means these pass)
 
 ```bash
-make check                 # the gate: style + docstrings + skill validation + tests, ~0.5s
-make test                  # 203 tests: PYTHONPATH=src python3 -m unittest discover -s tests -t .
+make check                 # the gate: style + docstrings + skills + docs links + tests, ~1s
+make test                  # 225 tests: PYTHONPATH=src python3 -m unittest discover -s tests -t .
 make style                 # python3 scripts/check_style.py .
+make docs                  # python3 scripts/check_docs.py (Markdown links and paths must resolve)
 make src-docstrings        # python3 scripts/check_style.py src --src-docstrings-only
 make tests-docstrings      # python3 scripts/check_style.py tests --test-docstrings-only
 make skill-lint            # python3 scripts/validate_skill.py skills/*
 ```
+
+CI runs `make check` and `make demo` on every push and pull request
+(`.github/workflows/check.yml`) on Python 3.10 and 3.12. The gate is not local-only:
+if it passes here and fails there, that is the bug — which is exactly how the
+`.budgetloop/`-dependent test was caught.
+
+Documentation is checked mechanically: `make docs` fails when a Markdown link or a
+path written as inline code points at something that does not exist. If you write
+about *another* repository's files, end the line with an HTML comment
+`<!-- docs-check: skip -->`.
 
 Narrower loops while working:
 
@@ -108,6 +120,13 @@ scan it, verify the commands, then fill in the template. Use it when a repo has 
 AGENTS.md, or when its file has drifted from reality. Validate skills with
 `make skill-lint`; the conventions and precedence rules are in
 `skills/write-agents-md/references/best-practices.md`.
+
+The Lab 2 comparison has its own harness: `scripts/run_experiment.py prepare` clones
+the repository twice at one revision — `context/` as it is, `cold/` with the
+governance removed in a commit — and `record` appends an attempt to the scorecard.
+If you change how the experiment works, keep both subcommands working: the pilot run
+was criticised for starting the arms from different commits, and that is the defect
+this script exists to prevent.
 
 ## Known traps
 

@@ -1,0 +1,255 @@
+{
+  "task": "Summarise what the README promises",
+  "provider": "scripted",
+  "budget": 4000,
+  "max_steps": 12,
+  "result": {
+    "status": "completed",
+    "answer": "I listed the Python modules, read the README, and asked to write example-scratch.txt. The write was refused because no approval policy is configured for this run, so the workspace is unchanged. The refusal arrived as an ordinary observation, which is why the loop kept going instead of failing.",
+    "steps": 4,
+    "tool_calls": 3,
+    "observations": 3,
+    "failed_observations": 1,
+    "final_tokens": 2655,
+    "peak_tokens": 2655,
+    "dropped_messages": 0,
+    "compactions": 0,
+    "duration_seconds": 0.006,
+    "trace_path": "tests/fixtures/tmp-traces/run-20260927T174116689211Z.json",
+    "transcript": [
+      {
+        "step": 1,
+        "assistant_text": "Perceive: look before touching anything.",
+        "tool_calls": [
+          {
+            "name": "list_files",
+            "arguments": {
+              "pattern": "**/*.py"
+            }
+          }
+        ],
+        "observations": [
+          {
+            "tool": "list_files",
+            "ok": true,
+            "chars": 604,
+            "error": null
+          }
+        ],
+        "window_tokens": 455,
+        "note": "acted"
+      },
+      {
+        "step": 2,
+        "assistant_text": "Plan: read the one file that answers the question.",
+        "tool_calls": [
+          {
+            "name": "read_file",
+            "arguments": {
+              "path": "README.md"
+            }
+          }
+        ],
+        "observations": [
+          {
+            "tool": "read_file",
+            "ok": true,
+            "chars": 8063,
+            "error": null
+          }
+        ],
+        "window_tokens": 2499,
+        "note": "acted"
+      },
+      {
+        "step": 3,
+        "assistant_text": "Act: ask for a write, which the harness refuses without an approval policy.",
+        "tool_calls": [
+          {
+            "name": "write_file",
+            "arguments": {
+              "path": "example-scratch.txt",
+              "content": "written by a scripted run\n"
+            }
+          }
+        ],
+        "observations": [
+          {
+            "tool": "write_file",
+            "ok": false,
+            "chars": 130,
+            "error": "operator declined mutating tool 'write_file' with {'path': 'example-scratch.txt', 'content': 'written by a scripted run\\n'}"
+          }
+        ],
+        "window_tokens": 2577,
+        "note": "acted"
+      },
+      {
+        "step": 4,
+        "assistant_text": "I listed the Python modules, read the README, and asked to write example-scratch.txt. The write was refused because no approval policy is configured for this run, so the workspace is unchanged. The refusal arrived as an ordinary observation, which is why the loop kept going instead of failing.",
+        "tool_calls": [],
+        "observations": [],
+        "window_tokens": 2655,
+        "note": "final"
+      }
+    ],
+    "context": {
+      "budget": 4000,
+      "reserve_output_tokens": 512,
+      "usable_budget": 3488,
+      "tokens": 2655,
+      "peak_tokens": 2655,
+      "messages": 10,
+      "dropped_messages": 0,
+      "compactions": [],
+      "ledger": [
+        {
+          "step": 0,
+          "action": "append:system",
+          "tokens": 119,
+          "budget": 3488,
+          "detail": "+119 tokens"
+        },
+        {
+          "step": 0,
+          "action": "append:tool_catalog",
+          "tokens": 266,
+          "budget": 3488,
+          "detail": "+147 tokens"
+        },
+        {
+          "step": 0,
+          "action": "append:task",
+          "tokens": 279,
+          "budget": 3488,
+          "detail": "+13 tokens"
+        },
+        {
+          "step": 1,
+          "action": "append:assistant",
+          "tokens": 300,
+          "budget": 3488,
+          "detail": "+21 tokens"
+        },
+        {
+          "step": 1,
+          "action": "append:observation:list_files",
+          "tokens": 455,
+          "budget": 3488,
+          "detail": "+155 tokens"
+        },
+        {
+          "step": 2,
+          "action": "append:assistant",
+          "tokens": 479,
+          "budget": 3488,
+          "detail": "+24 tokens"
+        },
+        {
+          "step": 2,
+          "action": "append:observation:read_file",
+          "tokens": 2499,
+          "budget": 3488,
+          "detail": "+2020 tokens"
+        },
+        {
+          "step": 3,
+          "action": "append:assistant",
+          "tokens": 2540,
+          "budget": 3488,
+          "detail": "+41 tokens"
+        },
+        {
+          "step": 3,
+          "action": "append:observation:write_file",
+          "tokens": 2577,
+          "budget": 3488,
+          "detail": "+37 tokens"
+        },
+        {
+          "step": 4,
+          "action": "append:final",
+          "tokens": 2655,
+          "budget": 3488,
+          "detail": "+78 tokens"
+        }
+      ],
+      "final_window": [
+        {
+          "role": "system",
+          "content": "You are a careful coding agent operating inside one repository.\nWork in small steps: inspect before you change, and verify with the project's\nregistered checks after you change.\nRules that are not negotiable:\n- Use only the registered tools. Never assume a file's contents; read it.\n- If a tool is refused or returns an error, report it instead of working around it.\n- Stay inside the workspace.\n- When the task is done, stop and say so in one short paragraph."
+        },
+        {
+          "role": "system",
+          "content": "Registered tools:\n- list_files(pattern: glob such as **/*.py; defaults to **/*): List workspace files matching a glob pattern.\n- read_file(path: workspace-relative path, e.g. README.md): Read a UTF-8 text file inside the workspace.\n- run_check(name: check name, one of: src-docstrings, style, tests, tests-docstrings): Run one registered project check (for example the test suite) and return its output.\n- write_file(path: workspace-relative path, content: full new file content) [mutates]: Create or overwrite a text file inside the workspace. Requires human approval."
+        },
+        {
+          "role": "user",
+          "content": "Summarise what the README promises"
+        },
+        {
+          "role": "assistant",
+          "content": "Perceive: look before touching anything.",
+          "tool_calls": [
+            {
+              "id": "call-1",
+              "name": "list_files",
+              "arguments": {
+                "pattern": "**/*.py"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "scripts/check_style.py\nscripts/score_experiment.py\nscripts/validate_skill.py\nskills/report-token-budget/scripts/report_budget.py\nskills/write-agents-md/scripts/scan_repo.py\nsrc/budgetloop/__init__.py\nsrc/budgetloop/cli.py\nsrc/budgetloop/context.py\nsrc/budgetloop/loop.py\nsrc/budgetloop/messages.py\nsrc/budgetloop/providers.py\nsrc/budgetloop/tools.py\ntests/__init__.py\ntests/_loader.py\ntests/test_budget_reporter.py\ntests/test_cli.py\ntests/test_context.py\ntests/test_experiment_scorer.py\ntests/test_loop.py\ntests/test_providers.py\ntests/test_skill_validator.py\ntests/test_style_tool.py\ntests/test_tools.py",
+          "tool_call_id": "call-1",
+          "tool_name": "list_files"
+        },
+        {
+          "role": "assistant",
+          "content": "Plan: read the one file that answers the question.",
+          "tool_calls": [
+            {
+              "id": "call-2",
+              "name": "read_file",
+              "arguments": {
+                "path": "README.md"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "README.md (11990 bytes shown]\n# budgetloop\n\n> A tiny agent loop that treats **context as a budget, not a bucket**.\n\n`budgetloop` is a dependency-free Python harness that runs a coding agent's\nperceive \u2192 plan \u2192 act \u2192 observe \u2192 iterate loop under four properties:\n\n1. it **cannot run forever** \u2014 `--max-steps` is a hard stop;\n2. it **cannot silently overspend context** \u2014 the window has a budget and a ledger;\n3. it **cannot touch anything it was not given** \u2014 tools are declared, sandboxed and gated;\n4. it **leaves evidence** \u2014 every run can be written to a JSON trace you can reopen.\n\nIt is small enough to read end to end in one sitting, and strict enough that its\nguarantees are covered by tests.\n\n## Why this exists\n\nThis repository is the Lab 1 prototype and the Lab 2 context-engineering target\nfor an agentic-engineering course. The prototype is deliberately modest; the\ninteresting part is that every design decision here is one a real agent framework\nmakes somewhere \u2014 and each one is a place where \"vibe\" and \"production\" diverge.\n\nThe two questions the labs ask of this code are:\n\n* **Lab 1:** where on the spectrum (vibe \u2192 structured \u2192 agentic) does my workflow\n  sit, and why? \u2192 [REFLECTION.md](REFLECTION.md)\n* **Lab 2:** does giving the agent *better context* (not a better model) change\n  first-pass success? \u2192 [docs/LAB2-BEFORE-AFTER.md](docs/LAB2-BEFORE-AFTER.md)\n\n## Quickstart\n\n```bash\nmake demo     # offline, no API key: a scripted run that compacts and refuses a write\nmake test     # the unit test suite (stdlib unittest, no pytest required)\nmake check    # style + docstring gates + skill validation + tests: the gate before \"done\"\nmake run TASK='summarise the README'   # drive the loop once, offline\n```\n\nNothing here needs the network, an API key, or a package install: Python 3.10+\nand the standard library. To use a live model instead:\n\n```bash\nexport ANTHROPIC_API_KEY=sk-ant-...\npython -m budgetloop.cli run --provider anthropic --allow-network \\\n    --model claude-sonnet-4-5 --brief AGENTS.md --task \"Explain the compaction policy\"\n```\n\nThe live provider is opt-in twice over (a flag *and* a key), because \"the agent\nsuddenly called a paid API\" should never be an accident.\n\n## The loop\n\n```\n task\n  \u2502\n  \u25bc\n [ system prompt ][ tool catalogue ][ task ]        \u2190 what the window starts with\n  \u2502\n  \u25bc\n provider.complete(messages, tools) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 PERCEIVE\n  \u2502\n  \u251c\u2500\u2500 no tool calls \u2500\u2500\u25b6 final answer \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 PLAN (stop condition)\n  \u2502\n  \u2514\u2500\u2500 tool calls \u2500\u2500\u25b6 approval gate? \u2500\u2500\u25b6 tool handler \u2500 ACT\n                          \u2502 denied              \u2502\n                          \u25bc                     \u25bc\n                    ERROR observation \u2500\u2500\u25b6 context window \u2500\u2500 OBSERVE\n                          \u2502                     \u2502\n                          \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n                                    \u25bc\n                        budget check + compaction \u2500\u2500\u2500\u2500 ITERATE\n```\n\nGuards, and where they live:\n\n| Guardrail | Behaviour when it triggers | Code |\n| --- | --- | --- |\n| Step cap | run ends `step_limit`, answer explains why | `loop.AgentLoop.run` |\n| Token budget | oldest tool exchanges are summarised; if nothing is evictable the run ends `budget_exceeded` | `context.ContextWindow.append` |\n| Workspace sandbox | path escapes, absolute paths and `.git/` raise `SandboxViolation` | `tools.Workspace.resolve` |\n| Approval gate | mutating tools need an explicit policy; **no policy means refusal** | `tools.ToolRegistry.run` |\n| Tool allow-list | only registered tools run, and `run_check` only runs pre-registered argv | `tools.default_registry` |\n| Output caps | oversized reads/observations are truncated with a visible notice | `tools.Workspace.read_file` |\n| Fail-closed network | the live provider needs `--allow-network` *and* a key | `cli.build_provider` |\n| Evidence | every run writes a JSON trace (`inspect` reopens it) | `loop.AgentLoop._record_trace` |\n\n## Context as a budget\n\n`ContextWindow` is the part worth reading twice:\n\n* **Everything is charged.** Each message reports its own token cost, including a\n  per-message framing overhead, so the loop decides *before* it overflows.\n* **Compaction is grouped, not line-by-line.** An assistant turn that requests\n  tools is welded to the observations it produced: evicting half an exchange would\n  leave a transcript a real provider rejects, so eviction happens per exchange.\n* **Some things are never evicted.** The system prompt, the current task, and the\n  newest tool exchanges are protected. If the protected set alone exceeds the\n  budget the run stops loudly instead of quietly forgetting the task.\n* **Eviction is lossy and honest.** Dropped messages become one bounded excerpt\n  summary (capped in tokens, so compaction can never *grow* the window), and every\n  eviction is recorded in the ledger with what was dropped and what it reclaimed.\n* **The ledger is the artifact.** `make demo` prints it; the trace file stores it.\n\nThat is the whole point of the lecture's phrase: a bucket just overflows, a budget\ntells you what you spent and what you gave up.\n\n## Tools and the sandbox\n\nFour tools ship by default:\n\n| Tool | Mutates | Notes |\n| --- | --- | --- |\n| `read_file` | no | UTF-8 only, refuses binary, truncated at `max_read_bytes` |\n| `list_files` | no | glob, capped entry count, skips `.git/`, `.venv/`, `node_modules/` |\n| `write_file` | **yes** | needs an approval policy; supports create and overwrite |\n| `run_check` | no | runs one **pre-registered** argv command by name \u2014 no shell, no arbitrary command |\n\n`run_check` is the interesting one. The model cannot invent a command; a human\nregistered `tests`, `style`, `src-docstrings` and `tests-docstrings` (see\n`tools.default_checks`), and the model may only ask for one of those. \"The\nagent can run the tests\" and \"the agent can run anything\" are different\nfeatures, and only the first one belongs in a loop you leave unattended. The\ntwo docstring gates fail when any module under `src/` (respectively `tests/`)\nlacks a module docstring.\n\n## Providers\n\n| Provider | Network | Purpose |\n| --- | --- | --- |\n| `scripted` | no | replays a JSON script (`scripts/example-run.json`); deterministic runs and CI |\n| `echo` | no | reports what it can see and stops; a smoke test |\n| `anthropic` | yes, opt-in | the real thing, over HTTPS with `urllib` (no SDK dependency) |\n\nThe provider seam is one method wide, which is why the entire test suite can\nexercise the guards \u2014 budget, eviction, refusals, termination \u2014 with zero network\ncalls and zero cost. `to_anthropic_messages()` is unit-tested separately, so the\nwire format is verified even when no key is present.\n\n## Repository layout\n\n```\n.\n\u251c\u2500\u2500 AGENTS.md                     # Lab 2: the README for agents (setup, tests, guardrails)\n\u251c\u2500\u2500 CLAUDE.md                     # Claude Code entry point: imports AGENTS.md, no duplication\n\u251c\u2500\u2500 REFLECTION.md                 # Lab 1: the 5-question workflow rubric, answered\n\u251c\u2500\u2500 README.md                     # this file (for humans)\n\u251c\u2500\u2500 Makefile                      # test / demo / check / run / score\n\u251c\u2500\u2500 .claude/skills/               # symlinks so Claude Code finds skills/* without a copy step\n\u251c\u2500\u2500 docs/\n\u2502   \u251c\u2500\u2500 LAB2-BEFORE-AFTER.md      # Lab 2: the protocol, the metrics, the empty results table\n\u2502   \u251c\u2500\u2500 experiment-scorecard.csv  # Lab 2: raw data, one row per attempt\n\u2502   \u2514\u2500\u2500 SETUP-AGENTS.md           # installing and driving Claude Code / Codex CLI\n\u251c\u2500\u2500 scripts/\n\u2502   \u251c\u2500\u2500 check_style.py            # house style rules (a real check, not a suggestion)\n\u2502   \u251c\u2500\u2500 validate_skill.py         # validates skills/* against the Agent Skills spec\n\u2502   \u251c\u2500\u2500 score_experiment.py       # turns the before/after scorecard into rates\n\u2502   \u2514\u2500\u2500 example-run.json          # the scripted run behind `make run`\n\u251c\u2500\u2500 skills/\n\u2502   \u2514\u2500\u2500 write-agents-md/          # Lab 2: one reusable Skill\n\u2502       \u251c\u2500\u2500 SKILL.md              # frontmatter + instructions (spec-conformant)\n\u2502       \u251c\u2500\u2500 scripts/scan_repo.py  # observes a repo; proposes commands to verify\n\u2502     \n... [observation truncated: 3574 chars omitted by the harness]",
+          "tool_call_id": "call-2",
+          "tool_name": "read_file"
+        },
+        {
+          "role": "assistant",
+          "content": "Act: ask for a write, which the harness refuses without an approval policy.",
+          "tool_calls": [
+            {
+              "id": "call-3",
+              "name": "write_file",
+              "arguments": {
+                "path": "example-scratch.txt",
+                "content": "written by a scripted run\n"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "ERROR: operator declined mutating tool 'write_file' with {'path': 'example-scratch.txt', 'content': 'written by a scripted run\\n'}",
+          "tool_call_id": "call-3",
+          "tool_name": "write_file"
+        },
+        {
+          "role": "assistant",
+          "content": "I listed the Python modules, read the README, and asked to write example-scratch.txt. The write was refused because no approval policy is configured for this run, so the workspace is unchanged. The refusal arrived as an ordinary observation, which is why the loop kept going instead of failing."
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,50 @@
+DEMO: offline, scripted provider. No model, no network, no writes.
+workspace=<repo>   reads capped at 1200 bytes
+measured cost with no budget pressure: 1165 tokens
+budget chosen for the real pass:       1339 tokens
+  (tight enough to force compaction, loose enough to finish)
+
+  step  1 [acted] list_files | window 422 tokens
+          ok  list_files (653 chars)
+  step  2 [acted] read_file | window 616 tokens
+          ok  read_file (710 chars)
+  step  3 [acted] read_file | window 693 tokens
+          ok  read_file (247 chars)
+  step  4 [acted] read_file | window 880 tokens
+          ok  read_file (1216 chars)
+  step  5 [acted] write_file | window 931 tokens
+          ERR write_file (94 chars)  refusing to run mutating tool 'write_file': no approval policy configured (fail closed)
+  step  6 [final] - | window 876 tokens
+
+answer: Audit complete. I listed the Python modules, read three project files, and attempted one write. The write was refused because this demo runs with no approval policy, so nothing on disk changed. As the window filled, the harness evicted the oldest tool exchange into a one-line summary instead of failing: the transcript is lossy on purpose, and the ledger above records exactly what was lost.
+
+[completed] 6 step(s), 5 tool call(s), 5 observation(s) (1 failed), 876 tokens held (peak 931), 4 message(s) compacted away, 0.004s
+------------------------------------------------------------------
+CONTEXT LEDGER  budget=1339  reserve=334  usable=1005
+------------------------------------------------------------------
+step  0  append:system           119 tokens  +119 tokens
+step  0  append:tool_catalog     223 tokens  +104 tokens
+step  0  append:task             243 tokens  +20 tokens
+step  1  append:assistant        254 tokens  +11 tokens
+step  1  append:observation:list_files    422 tokens  +168 tokens
+step  2  append:assistant        434 tokens  +12 tokens
+step  2  append:observation:read_file    616 tokens  +182 tokens
+step  3  append:assistant        627 tokens  +11 tokens
+step  3  append:observation:read_file    693 tokens  +66 tokens
+step  4  append:assistant        704 tokens  +11 tokens
+step  4  compact                 572 tokens  dropped 2 message(s) (-179 +47 tokens)
+step  4  append:observation:read_file    880 tokens  +308 tokens
+step  5  append:assistant        903 tokens  +23 tokens
+step  5  append:observation:write_file    931 tokens  +28 tokens
+step  6  compact                 774 tokens  dropped 2 message(s) (-194 +84 tokens)
+step  6  append:final            876 tokens  +102 tokens
+------------------------------------------------------------------
+peak 931/1005 tokens | final 876 | messages 11 | compaction events 2
+lossy: 4 message(s) summarised away, 242 net tokens reclaimed -- context is a budget, not a bucket
+
+What to notice:
+  1. The window is a budget: every turn is charged, and the ledger shows the balance.
+  2. When the budget ran out the oldest observation was summarised away -- lossy,
+     bounded, and recorded -- instead of the run crashing.
+  3. The write was refused by policy, not by luck: no approval policy means no write.
+  4. The refusal came back to the model as ordinary 'ERROR: ...' observation text.

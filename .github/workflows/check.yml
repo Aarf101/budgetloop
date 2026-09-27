@@ -1,0 +1,26 @@
+name: check
+
+# The gate runs on every push and pull request, on the oldest and the newest
+# supported Python, because "it passes on my machine" is the failure this repo is
+# about. No dependencies, no network: checkout, then `make check`.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: The gate (style, docstrings, skills, docs, tests)
+        run: make check
+      - name: The scripted demo still runs offline and writes nothing
+        run: make demo

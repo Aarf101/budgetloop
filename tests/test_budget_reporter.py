@@ -188,14 +188,16 @@ class MalformedTraceTests(unittest.TestCase):
             self.assertEqual(REPORTER.main([]), 2)
             self.assertEqual(REPORTER.main(["a.json", "b.json"]), 2)
 
-    def test_a_shipped_trace_reports_its_biggest_spender(self):
-        traces = sorted((REPO_ROOT / ".budgetloop" / "traces").glob("run-*.json"))
-        self.assertTrue(traces, "expected at least one shipped trace fixture")
+    def test_a_committed_trace_fixture_reports_its_biggest_spender(self):
+        # Bound to a committed fixture, never to the gitignored runtime trace
+        # directory: a test that needs a runtime artifact fails on a fresh clone.
+        fixture = REPO_ROOT / "tests" / "fixtures" / "trace-demo-run.json"
+        self.assertTrue(fixture.is_file(), "the trace fixture must be committed")
         with contextlib.redirect_stdout(io.StringIO()) as output:
-            self.assertEqual(REPORTER.main([str(traces[0])]), 0)
+            self.assertEqual(REPORTER.main([str(fixture)]), 0)
         self.assertIn("biggest tool: read_file", output.getvalue())
         with contextlib.redirect_stdout(io.StringIO()) as output:
-            self.assertEqual(REPORTER.main([str(traces[0]), "--json"]), 0)
+            self.assertEqual(REPORTER.main([str(fixture), "--json"]), 0)
         payload = json.loads(output.getvalue())
         self.assertEqual(payload["biggest_tool"]["tool"], "read_file")
         self.assertEqual(payload["biggest_step"]["step"], 2)

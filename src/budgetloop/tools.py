@@ -116,7 +116,15 @@ class Workspace:
         target = self.resolve(path, must_exist=False)
         target.parent.mkdir(parents=True, exist_ok=True)
         existed = target.exists()
-        target.write_text(content, encoding="utf-8")
+        # Write to a sibling temp file, then rename: a reader (or a crash) never
+        # sees a half-written file, which is what makes the recovery story honest.
+        temporary = target.with_name(f".{target.name}.budgetloop-tmp")
+        try:
+            temporary.write_text(content, encoding="utf-8")
+            os.replace(temporary, target)
+        except OSError:
+            temporary.unlink(missing_ok=True)
+            raise
         verb = "updated" if existed else "created"
         return f"{verb} {target.relative_to(self.root)} ({len(content)} chars)"
 

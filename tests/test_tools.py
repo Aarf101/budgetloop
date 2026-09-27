@@ -12,6 +12,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from unittest import mock
+
 from budgetloop.tools import (
     ApprovalDenied,
     SandboxViolation,
@@ -89,6 +91,20 @@ class WorkspaceSandboxTests(unittest.TestCase):
         listing = self.workspace.list_files("**/*")
         self.assertIn("docs/note.md", listing)
         self.assertNotIn("node_modules", listing)
+
+    def test_write_leaves_no_temporary_file_behind(self):
+        self.workspace.write_file("note.txt", "hello")
+        leftovers = [path.name for path in self.root.iterdir() if "tmp" in path.name]
+        self.assertEqual(leftovers, [])
+
+    def test_a_failed_write_leaves_the_original_intact(self):
+        self.workspace.write_file("note.txt", "original")
+        with mock.patch("os.replace", side_effect=OSError("simulated disk failure")):
+            with self.assertRaises(OSError):
+                self.workspace.write_file("note.txt", "replacement")
+        self.assertEqual((self.root / "note.txt").read_text(encoding="utf-8"), "original")
+        leftovers = [path.name for path in self.root.iterdir() if "tmp" in path.name]
+        self.assertEqual(leftovers, [], "the temp file must be cleaned up on failure")
 
     def test_write_creates_parent_directories_inside_the_workspace(self):
         observation = self.workspace.write_file("deep/nested/file.txt", "content")

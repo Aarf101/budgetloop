@@ -21,7 +21,7 @@ with the same model, everything else held still?
 | `AGENTS.md` in the repo | absent (rename it away) | present |
 | Skill available | no | yes — `skills/write-agents-md/` reachable |
 | Prompt | the bare task, one line, no hints | the bare task, one line, no hints |
-| Everything else | same model, same starting commit, same tool permissions | same |
+| Everything else | same model, same tool permissions, same commit — *which the pilot broke, see the caveat* | same |
 
 **Controls that matter.** Same starting commit for both arms; a fresh context for
 every attempt (no memory of the previous arm); no human edits mid-attempt (an edit
@@ -60,10 +60,20 @@ two hand-edits and a hint, the run is a failure with a note. That is the data.
 
 ## Protocol, in order
 
+**Build both arms from one commit with the harness**, which is also how the next
+person avoids the mistake described in the caveat below:
+
 ```bash
-# 0. clean slate: the same starting point for both arms
-git status                      # expect clean
-git log -1 --oneline            # record this hash in the scorecard notes
+python3 scripts/run_experiment.py prepare --base 01bc767 --out /tmp/lab2-experiment
+```
+
+That clones the repository twice at the same revision — `context/` as it is,
+`cold/` with the governance removed in a commit so no command can restore it — and
+prints the prompts and the recording command. Then, by hand:
+
+```bash
+git status                      # in each arm, expect a clean tree
+```
 
 # 1. COLD arm
 mv AGENTS.md /tmp/AGENTS.md.keep     # and make no skill reachable
@@ -89,6 +99,13 @@ context,TASK-A,1,1,0,0,4,"found scripts/check_style.py via AGENTS.md and extende
 
 ## Results
 
+**Lead with the finding that is not in the table:** three attempts to hold the cold
+control *failed*, because the agent reconstructed or restored the treatment each
+time. That is the durable result of this lab — a control arm is not a property of
+your script, it is a property of everything the agent can reach. The table below is
+the pilot pair that followed, and it is reported with its caveat rather than
+cleaned up.
+
 Two runs, same task, same tool, one variable: whether `AGENTS.md` and the skill were
 present. **TASK-A, TASK-B and TASK-C were all already implemented in this repository
 before the experiment began**, so the pair below uses a fresh task of the same kind.
@@ -113,8 +130,9 @@ Per task:
 *n/m = not measured: these sessions ran through the editor's agent host, whose
 transcripts are not readable from this machine, so the turn count was not recorded.
 The scorer reports it as `n/m` rather than as 0, because "nobody measured it" and
-"it was zero" are different facts. n = 1 per arm: treat every percentage here as a
-direction of travel, not a measurement of the model.*
+"it was zero" are different facts. n = 1 per arm, and these two rows are a **pilot**:
+the arms did not share a base commit, which is a defect of the method, not of the
+agent. `scripts/run_experiment.py prepare` exists so the next run does not repeat it.*
 
 ### The task had to be new, and that is itself data
 
@@ -193,8 +211,13 @@ verdict comes from real sessions.
 
 ## Threats to validity (put these in the write-up)
 
-1. **n is tiny.** Six attempts per arm is a direction of travel, not a measurement.
-   Report the attempt count and the raw rows, not just the percentages.
+1. **n is tiny, and the pilot pair is not like-for-like.** It ran one attempt per
+   arm, and the arms did not start from one commit — the cold arm ran at a base with
+   123 tests and the context arm at 193, because the cold copy had the
+   governance-dependent tests removed. Ordinary rates are unstable at n=1; this
+   comparison has a second defect on top. Use `scripts/run_experiment.py prepare`
+   to build both arms from one revision, then report the attempt count and the raw
+   rows rather than only the percentages.
 2. **Model and tool drift.** A different model version, or a changed permission set,
    invalidates the comparison. Record the tool, the model and the commit hash.
 3. **Learning effects.** You prompt better on the second arm. Counterbalance, or

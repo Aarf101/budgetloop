@@ -43,11 +43,12 @@ README but that an agent cannot infer from the code.
 
 * Existing `AGENT.md` files: rename to `AGENTS.md` and symlink for compatibility
   (`mv AGENT.md AGENTS.md && ln -s AGENTS.md AGENT.md`).
-* Some clients read a vendor-specific file as well (for example `CLAUDE.md`, or
-  `.github/copilot-instructions.md`). Keep one source of truth and point the
-  others at it, rather than duplicating instructions that will drift apart.
+* Some clients read a vendor-specific file as well (for example
+  `.github/copilot-instructions.md`, or `.cursorrules`). <!-- docs-check: skip -->
+  Keep one source of truth and point the others at it, rather than duplicating
+  instructions that will drift apart.
 * Aider users can set `read: AGENTS.md` in `.aider.conf.yml`; Gemini CLI accepts
-  `{"context": {"fileName": "AGENTS.md"}}` in `.gemini/settings.json`.
+  `{"context": {"fileName": "AGENTS.md"}}` in `.gemini/settings.json`. <!-- docs-check: skip -->
 
 ## What not to put in it
 

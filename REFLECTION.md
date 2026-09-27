@@ -2,14 +2,8 @@
 
 **Prototype:** `budgetloop`, a dependency-free Python agent loop with an explicit
 context budget.
-**Evidence to run yourself:** `make demo` (offline, ~1s), `make test` (203 tests),
+**Evidence to run yourself:** `make demo` (offline, ~1s), `make test` (225 tests),
 `make run TASK='...'`, then `make traces` and `inspect`.
-
-> **Read this first.** The italicised blockquotes below mark the facts that only
-> the person who drove the session can honestly supply: how much of the diff you
-> read, how many turns you took, and which decisions were yours. Everything else
-> is verifiable from this repository. Replace those before submitting; never claim
-> a number you did not observe.
 
 ## 1. What the prototype is, in one paragraph
 
@@ -49,16 +43,13 @@ deliberate choice rather than a limitation of the tooling.
 
 ### Q1 — How much of the output did I actually read?
 
-**Answer: not all of it, and that is the score-limiting answer.**
-I read: every file the agent created, end to end, at least once — the package is
-about 1,900 lines including docstrings, and the test suite another 1,800. I did
-*not* read: the last four tests line by line on first pass (I read their names and
-their assertions), and I did not re-read the whole diff after the final style pass.
+**Answer: about a third of it closely, and that is the score-limiting answer.**
 
-I watched a full 6-step `make demo` end to end, including the refused write and
-the 2 compactions. I read README.md and AGENTS.md fully, and skimmed
-src/budgetloop/loop.py. I did not read the test files line by line. So roughly
-30% closely, the rest skimmed or unread.
+I watched a full 6-step `make demo` run end to end — including the refused write
+and the two compactions — read `README.md` and `AGENTS.md` fully, and skimmed
+`src/budgetloop/loop.py`. I did not read the test files line by line: I read their
+names and spot-checked a few assertions. Of roughly 3,700 lines of code and tests,
+perhaps 30% was read closely, most of the rest skimmed, and some left unread.
 
 What this cost me: two bugs survived to the test run precisely because I had not
 read the tests closely — one where a compaction summary accumulated instead of
@@ -75,7 +66,7 @@ hour.**
 
 | Check | Command | What it proves |
 | --- | --- | --- |
-| Unit tests | `make test` | 203 tests by the end of Lab 2 (111 after Lab 1): budget arithmetic, eviction policy, sandbox escapes, refusal paths, wire format, CLI exit codes, and the checks themselves |
+| Unit tests | `make test` | 225 tests by the end of Lab 2 (111 after Lab 1): budget arithmetic, eviction policy, sandbox escapes, refusal paths, wire format, CLI exit codes, and the checks themselves |
 | House style | `make style` | tab/width/docstring/placeholder rules, enforced by `scripts/check_style.py` |
 | Self-check | `make check` | style + skill validation + tests, as one command the agent can run |
 
@@ -95,23 +86,20 @@ fix the rule and say why — is the habit I most want to keep.
 ### Q3 — Who decided the next step — me or the agent?
 
 **Answer: mixed, and the split is visible in the commit history.**
+
 The agent decided: module decomposition, the compaction algorithm, the dataclass
 shapes, the CLI verbs, the test layout.
-I decided: the four invariants (step cap, budget, sandbox, evidence), that writes
-must be refused absent an explicit policy, that live network use needs two
-independent opt-ins (a flag and a key), and that the repository must be able to
-prove all of it with one command.
+
+I decided: the four invariants (step cap, budget, sandbox, evidence); that writes
+must be refused by default; that live network use needs two independent opt-ins (a
+flag and a key); and that the repository must be able to prove all of it with one
+command.
 
 Where the agent drove and I followed: it proposed compaction that dropped
 individual messages. I accepted it; the tests then showed it could orphan a tool
 result — which a real provider rejects — and the unit of eviction became whole
 tool exchanges. I would not have predicted that failure mode, which is exactly the
 point: the test caught what my review would have missed.
-
-I stated the goal and the agent chose the implementation steps. I intervened to
-require writes be refused by default. The place it went somewhere I would not
-have: it first evicted single messages during compaction until a test showed
-that could orphan a tool result.
 
 ### Q4 — What happens if the AI is wrong?
 
@@ -139,10 +127,11 @@ recovery is `git diff`.**
 
 - The default provider is offline (`scripted`), the default spend is zero tokens,
   and the demo writes nothing — a failed demo costs a second.
-- Writes are refused unless a human approves them, and an approved write is a
-  plain single-file write, so `git diff` and `git checkout -- <path>` are the
-  recovery plan. This is why the prototype lives in a git repo *before* it does
-  anything interesting.
+- Writes are refused unless a human approves them, and an approved write goes to a
+  temp path and is renamed into place, so a refusal or a crash never leaves a
+  half-written file. `git diff` and `git checkout -- <path>` are the recovery plan,
+  which is why the prototype lives in a git repo *before* it does anything
+  interesting.
 - Every run writes a trace (`.budgetloop/traces/run-*.json`), so a bad outcome is
   reconstructable afterwards: `make traces`, then `inspect <path>`.
 - The one genuinely nasty failure would be a refused-but-partially-applied
@@ -153,8 +142,8 @@ recovery is `git diff`.**
 ## 4. Where this workflow was genuinely weak
 
 1. **Review depth, not review intent.** I intended to read everything and read
-   perhaps 80% of it closely on the first pass. The two bugs the tests found were
-   in that 20%.
+   perhaps a third of it closely on the first pass. The two bugs the tests found
+   were in the part I had skimmed.
 2. **I wrote the test names before the tests**, which made some tests confirm my
    plan instead of challenging it. The tests that found real bugs were the ones
    written *after* I could no longer predict anything — the eviction invariants.

@@ -5,5 +5,5 @@
 # agent_turns may be left blank when it was not measured; the scorer reports that
 # as "n/m" and never treats it as zero.
 arm,task_id,attempt,check_passed,human_edits,clarification_prompts,agent_turns,notes
-cold,TASK-D,1,1,0,0,,"no brief present; named the gate make test-docstrings (breaks the existing src-docstrings pattern); 129 tests"
-context,TASK-D,1,1,0,0,,"brief present; named it tests-docstrings to match the convention and updated AGENTS.md (177 -> 200 tests)"
+cold,TASK-D,1,1,0,0,,"PILOT, arms did not share a base: cold copy of the tree (123 -> 129 tests); named the gate make test-docstrings, breaking the src-docstrings pattern"
+context,TASK-D,1,1,0,0,,"PILOT, arms did not share a base: main tree (193 -> 200 tests); named it tests-docstrings to match the convention and updated AGENTS.md"

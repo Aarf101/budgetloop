@@ -14,3 +14,5 @@
 # Definition of first-pass success (do not loosen it): the task's check is green,
 # a human edited none of the agent's code, and at most one clarification was needed.
 arm,task_id,attempt,check_passed,human_edits,clarification_prompts,agent_turns,notes
+cold,TASK-A,1,1,0,0,,base 01bc767
+context,TASK-A,1,1,0,0,10,base 01bc767; turns are a floor (chat showed >10 replies, not counted exactly)

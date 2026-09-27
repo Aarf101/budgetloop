@@ -20,7 +20,8 @@ help:
 	@echo "make tests-docstrings  fail if any module under tests/ lacks a docstring"
 	@echo "make skill-lint validate every skills/*/SKILL.md against the Agent Skills spec"
 	@echo "make run TASK='...'  drive the loop once, offline, from scripts/example-run.json"
-	@echo "make score      score the Lab 2 scorecard (docs/experiment-scorecard.csv)"
+	@echo "make score      score the pilot scorecard (docs/experiment-scorecard.csv)"
+	@echo "make score-study  score the one-commit study (docs/study-scorecard.csv)"
 	@echo "make traces     list trace files written by recent runs"
 	@echo "make clean      remove caches and runtime artifacts"
 
@@ -56,6 +57,9 @@ run:
 
 score:
 	$(PYTHON) scripts/score_experiment.py docs/experiment-scorecard.csv
+
+score-study:
+	$(PYTHON) scripts/score_experiment.py docs/study-scorecard.csv
 
 traces:
 	@ls -1t .budgetloop/traces 2>/dev/null || echo "no traces yet"

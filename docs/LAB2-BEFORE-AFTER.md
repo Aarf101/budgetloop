@@ -99,67 +99,67 @@ context,TASK-A,1,1,0,0,4,"found scripts/check_style.py via AGENTS.md and extende
 
 ## Results
 
-**Lead with the finding that is not in the table:** three attempts to hold the cold
-control *failed*, because the agent reconstructed or restored the treatment each
-time. That is the durable result of this lab — a control arm is not a property of
-your script, it is a property of everything the agent can reach. The table below is
-the pilot pair that followed, and it is reported with its caveat rather than
-cleaned up.
+**Lead with the finding that is not in the table:** three early attempts to hold the
+cold control *failed*, because the agent reconstructed or restored the treatment each
+time. That is the durable result of this lab — a control arm is not a property of your
+script, it is a property of everything the agent can reach. It is reported in full at
+the end of this section.
 
-Two runs, same task, same tool, one variable: whether `AGENTS.md` and the skill were
-present. **TASK-A, TASK-B and TASK-C were all already implemented in this repository
-before the experiment began**, so the pair below uses a fresh task of the same kind.
+### The study: TASK-A, both arms from one commit
 
-> **TASK-D** — "Add a check that fails if any test module under `tests/` lacks a
-> docstring, and wire it into the existing checks."
->
-> **Check:** `make check` green in that repository, *and* the rule implemented
-> inside `scripts/check_style.py` rather than a new one-off script.
+Built with `scripts/run_experiment.py prepare --base 01bc767`, so the two arms differ
+in exactly one thing: whether the governance files are present. One attempt per arm,
+fresh agent session each, same one-line prompt.
 
-| Arm | Attempts | First-pass | Check green | Mean turns | Mean edits |
+| Arm | Attempts | First-pass | Check green | Turns | Human edits |
 | --- | --- | --- | --- | --- | --- |
-| cold (no `AGENTS.md`, no skill) | 1 | 1/1 (100%) | 100% | n/m | 0.0 |
-| context (both present) | 1 | 1/1 (100%) | 100% | n/m | 0.0 |
+| cold (no `AGENTS.md`, no skill) | 1 | 1/1 (100%) | 100% | n/m | 0 |
+| context (both present) | 1 | 1/1 (100%) | 100% | ≥ 10 | 0 |
 
-Per task:
-
-| Task | cold first-pass | context first-pass | What the difference was actually about |
-| --- | --- | --- | --- |
-| TASK-D | 1/1 | 1/1 | Both correct; the governed run stayed inside the repo's conventions and maintained the brief. See below. |
-
-*n/m = not measured: these sessions ran through the editor's agent host, whose
-transcripts are not readable from this machine, so the turn count was not recorded.
-The scorer reports it as `n/m` rather than as 0, because "nobody measured it" and
-"it was zero" are different facts. n = 1 per arm, and these two rows are a **pilot**:
-the arms did not share a base commit, which is a defect of the method, not of the
-agent. `scripts/run_experiment.py prepare` exists so the next run does not repeat it.*
-
-### The task had to be new, and that is itself data
-
-**TASK-A, TASK-B and TASK-C were all already implemented in this repository before
-the experiment began** — three earlier cold attempts had leaked the governance layer
-and their work had been kept on merit. The pair above therefore uses a fresh task of
-the same kind, with the same kind of machine-decidable check.
-
-### What differed, when the outcome didn't
-
-Both runs passed first try, with no human edits and no clarification prompts. The
-treatment did not change *correctness*. It changed *consistency*:
+**Both arms passed first try, with no human edits and no clarification prompts.** The
+treatment did not change *correctness*. It changed what each run *maintained*:
 
 | Dimension | cold (no brief) | context (brief present) |
 | --- | --- | --- |
-| `make` target name | `make test-docstrings` | `make tests-docstrings` |
-| `run_check` key | `test-docstrings` | `tests-docstrings` |
-| Existing convention | already `src-docstrings` (directory name + `-docstrings`) | matched that pattern |
-| Brief maintained | n/a — no brief existed | `AGENTS.md` updated: new gate documented, test count 177 → 200 |
-| Tests added | +6 (123 → 129) | +7 (193 → 200) |
+| Approach | extend `check_style.py`, add a `make` target, wire it into `check` | the same approach |
+| Rule / target / flag | `src-docstring` / `make src-docstrings` / `--src-docstrings-only` | identical |
+| Files changed | 6 (+127/−13) | 8 (+146/−23) |
+| The brief | n/a — no `AGENTS.md` existed | `AGENTS.md` updated: the gate line, the new target, the test count, and the `run_check` allow-list entry |
+| The reflection | n/a — absent | `REFLECTION.md` test counts corrected |
+| Gate available | style + tests (118) | style + skills + tests (178) |
 
-Read the first three rows together. The repository already had a gate named
-`src-docstrings`; the governed run produced `tests-docstrings` — the same pattern
-applied to the new directory — and recorded it in the brief. The ungoverned run
-produced `test-docstrings`, which works but breaks the pattern, and left nothing to
-update because there was nothing there. **A reviewer has to catch that by hand; the
-brief said it without being asked.**
+Read the last three rows together. The ungoverned run left the repository as it found
+it, because nothing there recorded what the repository *is*. The governed run corrected
+the brief that describes its own new gate, and the stale numbers elsewhere in the
+documentation. **That work never shows up in a pass/fail column, and it is the work a
+reviewer would otherwise do by hand.**
+
+Limits of this study, stated plainly: one task, one attempt per arm. The gate counts
+differ (118 vs 178) because the cold arm's gate drops the two checks whose subject
+matter was removed with the governance — the code baseline is identical, the gate is
+not. Turn counts are a floor for the context arm (`>10` in the session) and
+unmeasured for the cold arm; the scorer reports that as `n/m`, because "not measured"
+and "zero" are different facts.
+
+### The pilot (superseded, kept for the record)
+
+Before the harness existed, a pilot pair ran on **TASK-D** — "Add a check that fails if
+any test module under `tests/` lacks a docstring" — with the two arms starting from
+*different* trees (123 and 193 tests), because at that point TASK-A, TASK-B and TASK-C
+had already been implemented in the repository and no longer worked as experiments. The
+study above avoids both problems by starting from a base commit where the tasks are open
+and by building both arms from it.
+
+| Arm | Attempts | First-pass | Check green | Turns | Human edits |
+| --- | --- | --- | --- | --- | --- |
+| cold | 1 | 1/1 (100%) | 100% | n/m | 0 |
+| context | 1 | 1/1 (100%) | 100% | n/m | 0 |
+
+Its one observation, which the study strengthened rather than replaced: the cold run
+named its gate `test-docstrings`, breaking the repository's existing `src-docstrings`
+pattern, and had no brief to update. One observation, one task, mismatched bases — which
+is why the numbers above are not used anywhere in this document's conclusions. Rows:
+`docs/experiment-scorecard.csv` (pilot), `docs/study-scorecard.csv` (study).
 
 ### The bigger finding: the control condition is not achievable
 
@@ -211,13 +211,13 @@ verdict comes from real sessions.
 
 ## Threats to validity (put these in the write-up)
 
-1. **n is tiny, and the pilot pair is not like-for-like.** It ran one attempt per
-   arm, and the arms did not start from one commit — the cold arm ran at a base with
-   123 tests and the context arm at 193, because the cold copy had the
-   governance-dependent tests removed. Ordinary rates are unstable at n=1; this
-   comparison has a second defect on top. Use `scripts/run_experiment.py prepare`
-   to build both arms from one revision, then report the attempt count and the raw
-   rows rather than only the percentages.
+1. **n is small and the design is one cell, not six.** The study is one task with one
+   attempt per arm; the reviewer's design was three tasks with two attempts each. Two
+   runs are an anecdote with arithmetic attached. The pilot's base-commit defect is fixed
+   — both arms now come from one revision via `scripts/run_experiment.py prepare` — but
+   the *gate* still differs between arms (118 tests cold, 178 with the governance)
+   because the cold arm drops the checks whose subject matter was removed. Same code
+   baseline, different gate: say so whenever you quote the numbers.
 2. **Model and tool drift.** A different model version, or a changed permission set,
    invalidates the comparison. Record the tool, the model and the commit hash.
 3. **Learning effects.** You prompt better on the second arm. Counterbalance, or
@@ -230,18 +230,23 @@ verdict comes from real sessions.
 
 ## Conclusion
 
-> With the treatment, first-pass success did not move: 1/1 in both arms, no human
-> edits and no clarification prompts either way. The useful difference was not the
-> rate but the *shape* of the result: the ungoverned run invented a gate name
-> (`test-docstrings`) that broke the repository's existing `src-docstrings` pattern
-> and had no brief to update, while the governed run followed the pattern
-> (`tests-docstrings`) and kept `AGENTS.md` current. Context engineering did not make
-> the model smarter here — it removed a class of small mistakes that are expensive to
-> catch in review, and it carried the documentation along with the change.
+> First-pass success did not move: 1/1 in both arms of the study, 1/1 in both arms of the
+> pilot, with no human edits and no clarification prompts in any of the four runs. What
+> moved was *maintenance*. In the study the two arms converged on the same design — same
+> rule name, same `make` target, same flag — and the governed run went further: it
+> corrected the brief that describes its own new gate, and the test counts elsewhere in
+> the documentation that its change had made stale. In the pilot, where the arms started
+> from different trees, the ungoverned run invented a gate name that broke the
+> repository's existing `src-docstrings` pattern and left nothing documented.
 >
-> The stronger result is methodological: three attempts to hold the control condition
-> failed, because the agent reconstructed or restored the treatment each time. The
-> fourth attempt fixed the *method* — governance removed from git history, not merely
-> from the working tree — instead of asking the agent to behave, and that run stayed
-> cold. Measuring an agent means measuring the agent plus everything it can reach.
+> The stronger result is methodological: three attempts to hold the cold control failed,
+> because the agent reconstructed or restored the treatment each time. The fourth attempt
+> fixed the *method* — governance removed from git history, not merely from the working
+> tree — instead of asking the agent to behave, and that arm stayed cold. Measuring an
+> agent means measuring the agent plus everything it can reach.
+>
+> The honest summary: with one task and one attempt per arm, this is not a study of the
+> model. What it supports is narrower and still useful — in this repository, the context
+> bought documentation upkeep and convention adherence, not raw capability. For rates,
+> run the harness over three tasks × two attempts and publish that table.
 

@@ -125,20 +125,16 @@ same files without a copy step.
 
 ## My decisions
 
-<!-- Edit these in your own words: a reader should hear you, not a coding agent. -->
+Four calls were mine, not the agent's:
 
-Four calls shaped this more than any code:
-
-* **Writes are refused unless a human approves them.** A guardrail that defaults to
-  "yes" is not a guardrail, so the approval gate fails closed, and `--yes` exists
-  only for a session I am driving myself.
-* **The four guarantees come before features.** Step cap, budget, sandbox, evidence:
-  if a feature cannot be added without weakening one of them, the feature waits.
-* **No dependencies, no network in tests.** The whole suite runs offline, in half a
-  second, for free — which is why I run it after every change instead of promising to.
-* **No number goes in the docs that I did not measure.** The Lab 2 scorecard says
-  `n/m` for turn counts rather than a guess, and the results table stayed empty
-  until it had real rows.
+* **Writes need my permission.** It has to ask before it modifies any file.
+* **Safety before features.** Safety matters more than a new feature: the four
+  guarantees — step cap, budget, sandbox, evidence — come first.
+* **The tests run offline.** No network, no install step, half a second per run.
+  That is what made running them after every change practical.
+* **Nothing measured, nothing claimed.** The turn counts say `n/m` instead of a
+  guess, so anyone who re-runs the experiment gets the same result on their machine,
+  not just on mine.
 
 ## Limits
 

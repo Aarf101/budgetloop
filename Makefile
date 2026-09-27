@@ -7,7 +7,7 @@
 PYTHON ?= python3
 export PYTHONPATH := src
 
-.PHONY: help test demo demo-gif style src-docstrings tests-docstrings skill-lint docs check run traces score clean
+.PHONY: help test demo demo-gif style docs src-docstrings tests-docstrings skill-lint check run traces score score-study clean
 
 help:
 	@echo "make test       run the unit test suite (stdlib unittest)"

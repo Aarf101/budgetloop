@@ -15,7 +15,7 @@ per run. Layout:
 - `tests/` — one module per boundary; `tests/test_style_tool.py` tests the checker itself, and `tests/fixtures/` holds a committed trace so a fresh clone passes
 - `scripts/` — the repo's checks and tools: `check_style.py`, `check_docs.py`, `validate_skill.py`, `score_experiment.py`, `run_experiment.py`, `render_demo_gif.sh`
 - `skills/` — the two Agent Skills, symlinked from `.claude/skills/` for discovery
-- `docs/` — the Lab 2 protocol, the scorecard, the agent-CLI setup notes, the demo GIF
+- `docs/` — the design notes (`DESIGN.md`), the Lab 2 protocol and scorecard, the agent-CLI setup notes, the demo GIF
 - `.github/workflows/check.yml` — runs this repository's gate on every push
 - `.budgetloop/traces/` — runtime artifacts, gitignored; never edit or commit them
 

@@ -1,0 +1,16 @@
+# Lab 2 study scorecard — the reviewer-requested run.
+#
+# 3 tasks x 2 attempts x 2 arms, both arms built from ONE commit by
+# `python3 scripts/run_experiment.py prepare --base 01bc767`, so the comparison is
+# like-for-like. Record each attempt immediately with:
+#
+#   python3 scripts/run_experiment.py record --scorecard docs/study-scorecard.csv \
+#       --arm cold --task TASK-A --attempt 1 --check 1 --edits 0 --prompts 0 \
+#       --turns 6 --notes "base 01bc767, tool: <name>"
+#
+# `--turns n/a` is a valid answer when you did not count them; "not measured" is
+# never the same fact as zero.
+#
+# Definition of first-pass success (do not loosen it): the task's check is green,
+# a human edited none of the agent's code, and at most one clarification was needed.
+arm,task_id,attempt,check_passed,human_edits,clarification_prompts,agent_turns,notes
